@@ -7,6 +7,7 @@ const appliance = require('./appliance');
 const room = require('./room');
 const user = require('./user');
 const auth = require('./auth');
+const health = require('./health');
 
 // app.use(bodyParser.urlencoded({
 //   extended: true
@@ -29,6 +30,7 @@ app.use('/api/appliance', appliance);
 app.use('/api/room', room);
 app.use('/api/user', user);
 app.use('/api/auth', auth);
+app.use('/api/health', health);
 
  
 const port = process.env.PORT || 3000;
