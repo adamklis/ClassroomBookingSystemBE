@@ -12,27 +12,51 @@ USERS = [
       forename: 'Adam',
       surname: 'Kliś',
       contact: '691202553',
-      role: 'admin',
       email: 'klis.adam.0807@gmail.com',
-      password: 'aklis'
+      password: 'aklis',
+      permissions:[
+        'APPLIANCE_EDIT',
+        'APPLIANCE_VIEW',
+        'RESERVATION_EDIT',
+        'RESERVATION_EDIT_USER',
+        'RESERVATION_VIEW',
+        'RESERVATION_VIEW_USER',
+        'ROOM_EDIT',
+        'ROOM_VIEW',
+        'SOFTWARE_EDIT',
+        'SOFTWARE_VIEW',
+        'USER_EDIT',
+        'USER_VIEW'
+      ]
     },
     {
       uuid: '2',
       forename: 'Jan',
       surname: 'Kowalski',
       contact: '123456789',
-      role: 'student',
       email: 'klisiu94@onet.eu',
-      password: 'jkowa'
+      password: 'jkowa',
+      permissions:[
+        'APPLIANCE_EDIT',
+        'APPLIANCE_VIEW',
+        'RESERVATION_EDIT',
+        'RESERVATION_EDIT_USER',
+        'RESERVATION_VIEW',
+        'RESERVATION_VIEW_USER',
+        'ROOM_EDIT',
+        'ROOM_VIEW',
+        'SOFTWARE_EDIT',
+        'SOFTWARE_VIEW'
+      ]
     },
     {
       uuid: '3',
       forename: 'Mateusz',
       surname: 'Nowak',
       contact: '987654321',
-      role: 'tech',
       email: 'nowakmateusz@interia.pl',
-      password: 'mnowa'
+      password: 'mnowa',
+      permissions:[]
     }
   ];
   
@@ -64,7 +88,6 @@ router.post('/', jsonParser, function (req, res) {
         forename: req.body.forename,
         surname: req.body.surname,
         contact: req.body.contact,
-        role: req.body.role,
         email: req.body.email,
         password: req.body.password
     }
@@ -90,7 +113,6 @@ router.put('/:uuid', jsonParser, function (req, res) {
     userFound.forename = req.body.forename;
     userFound.surname = req.body.surname;
     userFound.contact = req.body.contact;
-    userFound.role = req.body.role;
     userFound.email = req.body.email;
     if (req.body.password) {
         userFound.password = req.body.password;
@@ -120,7 +142,6 @@ function validateUser(user) {
         forename: Joi.string().required(),
         surname: Joi.string().required(),
         contact: Joi.string().required(),
-        role: Joi.string().required(),
         email: Joi.string().required(),
         password: Joi.string().allow(null).allow(''),
     });
