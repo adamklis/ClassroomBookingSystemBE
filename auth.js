@@ -47,7 +47,8 @@ const jsonParser = bodyParser.json();
           'ROOM_EDIT',
           'ROOM_VIEW',
           'SOFTWARE_EDIT',
-          'SOFTWARE_VIEW'
+          'SOFTWARE_VIEW',
+          'USER_VIEW'
         ]
       },
       {
@@ -57,7 +58,12 @@ const jsonParser = bodyParser.json();
         contact: '987654321',
         email: 'nowakmateusz@interia.pl',
         password: 'mnowa',
-        permissions:[]
+        permissions:[
+          'APPLIANCE_VIEW',
+          'RESERVATION_VIEW',
+          'ROOM_VIEW',
+          'SOFTWARE_VIEW'
+        ]
       }
     ];
 
