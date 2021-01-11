@@ -2,7 +2,8 @@ const express = require('express')
 const Joi = require('joi');
 const crypto = require('crypto');
 const base64url = require('base64url');
-const router = express.Router()
+const router = express.Router();
+const bcrypt = require('bcrypt');
 
 const bodyParser = require('body-parser');
 const jsonParser = bodyParser.json();
@@ -14,7 +15,7 @@ const jsonParser = bodyParser.json();
         surname: 'Kliś',
         contact: '691202553',
         email: 'klis.adam.0807@gmail.com',
-        password: 'aklis',
+        password: '$2b$10$V/J606SGLYeQ24H4PZCi9OUQz3rtH.S7tb7bVeOvKjlTnWlvdAcBG',
         permissions:[
           'APPLIANCE_EDIT',
           'APPLIANCE_VIEW',
@@ -36,7 +37,7 @@ const jsonParser = bodyParser.json();
         surname: 'Kowalski',
         contact: '123456789',
         email: 'klisiu94@onet.eu',
-        password: 'jkowa',
+        password: '$2b$10$V/J606SGLYeQ24H4PZCi9OUQz3rtH.S7tb7bVeOvKjlTnWlvdAcBG',
         permissions:[
           'APPLIANCE_EDIT',
           'APPLIANCE_VIEW',
@@ -57,7 +58,7 @@ const jsonParser = bodyParser.json();
         surname: 'Nowak',
         contact: '987654321',
         email: 'nowakmateusz@interia.pl',
-        password: 'mnowa',
+        password: '$2b$10$V/J606SGLYeQ24H4PZCi9OUQz3rtH.S7tb7bVeOvKjlTnWlvdAcBG',
         permissions:[
           'APPLIANCE_VIEW',
           'RESERVATION_VIEW',
@@ -70,8 +71,7 @@ const jsonParser = bodyParser.json();
 TOKENS = [];
   
 router.post('/get_token', jsonParser, function (req, res) {
-    let user = USERS.find(user => user.email === req.body.client_id && user.password === req.body.client_secret);
-
+    let user = USERS.find(user => user.email === req.body.client_id && bcrypt.compareSync(req.body.client_secret, user.password));
     let token = {
         access_token: base64url(crypto.randomBytes(48)), 
         token_type: 'Bearer'

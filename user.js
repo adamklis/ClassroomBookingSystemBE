@@ -1,7 +1,8 @@
 const express = require('express')
 const Joi = require('joi');
 const { v4: uuidv4 } = require('uuid');
-const router = express.Router()
+const router = express.Router();
+const bcrypt = require('bcrypt');
 
 const bodyParser = require('body-parser');
 const jsonParser = bodyParser.json();
@@ -78,6 +79,11 @@ router.get('/:uuid', function (req, res) {
 })
 
 router.post('/', jsonParser, function (req, res) {
+
+    if ( USERS.find(user => user.email === req.body?.email)) {
+        return res.status(400).send("SHARED.ERROR.USER_EXIST");
+    }
+
     const { error } = validateUser(req.body)
     if (error) {
         return res.status(400).send(error.details[0].message);
@@ -89,7 +95,8 @@ router.post('/', jsonParser, function (req, res) {
         surname: req.body.surname,
         contact: req.body.contact,
         email: req.body.email,
-        password: req.body.password
+        password: bcrypt.hashSync(req.body.password, 10),
+        permissions: []
     }
 
     USERS.push(newUser);
@@ -115,7 +122,7 @@ router.put('/:uuid', jsonParser, function (req, res) {
     userFound.contact = req.body.contact;
     userFound.email = req.body.email;
     if (req.body.password) {
-        userFound.password = req.body.password;
+        userFound.password = bcrypt.hashSync(req.body.password, 10);
     }
 
     userFound = JSON.parse(JSON.stringify(userFound));
