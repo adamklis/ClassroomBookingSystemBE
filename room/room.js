@@ -6,41 +6,22 @@ const router = express.Router()
 const bodyParser = require('body-parser');
 const jsonParser = bodyParser.json();
 
-ROOMS = [
-    {
-      uuid: '1',
-      name: '419N',
-      numberOfSeats: 30,
-      appliances: [],
-      software: []
-    },
-    {
-      uuid: '2',
-      name: '420N',
-      numberOfSeats: 60,
-      appliances: [],
-      software: []
-    },
-    {
-      uuid: '3',
-      name: 'A1',
-      numberOfSeats: 120,
-      appliances: [],
-      software: []
-    },
-  ];
-  
+const RoomService = require('./room-service');
+var roomService = new RoomService();
+
 router.get('/', function (req, res) {
-    res.send(ROOMS);
+    roomService.getRooms()
+        .then(result => res.send(result))
+        .catch(err => res.status(400).send(err))
 })
 
 router.get('/:uuid', function (req, res) {
-    const result = ROOMS.find(room => room.uuid === req.params.uuid);
-    if (!result) {
-        res.status(404).send('Room not found.');    
-    } 
-    
-    res.send(result);
+    roomService.getRoom(req.params.uuid)
+        .then(result => {
+            if (!result) {res.status(404).send('Not found')}
+            else {res.send(result)}
+        })
+        .catch(err => res.status(400).send(err));
 })
 
 router.post('/', jsonParser, function (req, res) {
@@ -57,39 +38,42 @@ router.post('/', jsonParser, function (req, res) {
         software: req.body.software
     }
 
-    ROOMS.push(newRoom);
-    res.send(newRoom);
+    roomService.addRoom(newRoom)
+        .then(result => res.send(result.ops[0]))
+        .catch(err => res.status(400).send(err));
 })
 
 router.put('/:uuid', jsonParser, function (req, res) {
-    
-    let roomFound = ROOMS.find(room => room.uuid === req.params.uuid);
-    if (!roomFound) {
-        res.status(404).send('Room not found.');
-    }
 
     const { error } = validateRoom(req.body)
     if (error) {
         return res.status(400).send(error.details[0].message);
     }
 
-    roomFound.name = req.body.name;
-    roomFound.quantity = req.body.quantity;
-    roomFound.numberOfSeats = req.body.numberOfSeats,
-    roomFound.appliances = req.body.appliances,
-    roomFound.software = req.body.software
+    const updatedRoom = {
+        uuid: req.body.uuid,
+        name: req.body.name,
+        quantity: req.body.quantity,
+        numberOfSeats: req.body.numberOfSeats,
+        appliances: req.body.appliances,
+        software: req.body.software
+    };
 
-    res.send(roomFound);
+    roomService.updateRoom(updatedRoom)
+        .then(result => {
+            if (!result.value) {res.status(404).send('Not found')}
+            else {res.send(result.value)}
+        })
+        .catch(err => res.status(400).send(err));
 })
 
 router.delete('/:uuid', function (req, res) {
-    const result = ROOMS.find(room => room.uuid === req.params.uuid);
-    if (!result) {
-        res.status(404).send('Room not found.');
-    }
-
-    ROOMS = ROOMS.filter(room => room.uuid !== req.params.uuid)
-    res.send(result);
+    roomService.deleteRoom(req.params.uuid)
+        .then(result => {
+            if (!result.value) {res.status(404).send('Not found')}
+            else {res.send(result.value)}
+        })
+        .catch(err => res.status(400).send(err));
 })
 
 

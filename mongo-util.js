@@ -44,6 +44,14 @@ module.exports = {
                         })
                     }
 
+                    if (!collections.find(collection => collection.name === 'token')) {
+                        _db.createCollection("token", function (err, res) {
+                            if (err) throw err;
+                            console.log("Token collection created!");
+                        })
+                    }
+
+
                     return callback(err);
                 });
             }

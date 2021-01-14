@@ -8,10 +8,10 @@ mongoUtil.connectToServer( err => {
     console.log(err)
   } else {
     const software = require('./software/software');
-    const appliance = require('./appliance');
-    const room = require('./room');
-    const user = require('./user');
-    const auth = require('./auth');
+    const appliance = require('./appliance/appliance');
+    const room = require('./room/room');
+    const user = require('./user/user');
+    const auth = require('./auth/auth');
     const health = require('./health');
 
     app.use('/api/software', software);

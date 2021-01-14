@@ -6,13 +6,11 @@ const router = express.Router()
 const bodyParser = require('body-parser');
 const jsonParser = bodyParser.json();
 
-const SoftwareService = require('./software-service');
-
-var softwareService = new SoftwareService();
-
+const ApplianceService = require('./appliance-service');
+var applianceService = new ApplianceService();
 
 router.get('/', function (req, res) {
-    softwareService.getSoftwareList()
+    applianceService.getAppliances()
         .then(result => res.send(result))
         .catch(err => res.status(400).send(err))
 })
@@ -20,7 +18,7 @@ router.get('/', function (req, res) {
 router.get('/use', function (req, res) {
     let uuidFilter = req.query.filter_uuid;
     let nameFilter = req.query.filter_name;
-    softwareService.getSoftwareList()
+    applianceService.getAppliances()
         .then(result => res.send(
             result
                 .filter(item => 
@@ -33,14 +31,14 @@ router.get('/use', function (req, res) {
                     name: item.name,
                     quantity: 0,
                     maxQuantity: item.quantity,
-                    software: { uuid: item.uuid, name: item.name }
+                    appliance: { uuid: item.uuid, name: item.name }
                 }
                 })
         ));
 })
 
 router.get('/:uuid', function (req, res) {
-    softwareService.getSoftware(req.params.uuid)
+    applianceService.getAppliance(req.params.uuid)
         .then(result => {
             if (!result) {res.status(404).send('Not found')}
             else {res.send(result)}
@@ -49,40 +47,36 @@ router.get('/:uuid', function (req, res) {
 })
 
 router.post('/', jsonParser, function (req, res) {
-    const { error } = validateSoftware(req.body)
+    const { error } = validateAppliance(req.body)
     if (error) {
         return res.status(400).send(error.details[0].message);
     }
     
-    const newSoftware = {
+    const newAppliance = {
         uuid: uuidv4(),
         name: req.body.name,
-        quantity: req.body.quantity,
-        validFrom: req.body.validFrom,
-        validTo: req.body.validTo,
+        quantity: req.body.quantity
     }
 
-    softwareService.addSoftware(newSoftware)
+    applianceService.addAppliance(newAppliance)
         .then(result => res.send(result.ops))
         .catch(err => res.status(400).send(err));
 })
 
 router.put('/:uuid', jsonParser, function (req, res) {
     
-    const { error } = validateSoftware(req.body)
+    const { error } = validateAppliance(req.body)
     if (error) {
         return res.status(400).send(error.details[0].message);
     }
 
-    const updatedSoftware = {
+    const updatedAppliance = {
         uuid: req.body.uuid,
         name: req.body.name,
-        quantity: req.body.quantity,
-        validFrom: req.body.validFrom,
-        validTo: req.body.validTo,
+        quantity: req.body.quantity
     };
 
-    softwareService.updateSoftware(updatedSoftware)
+    applianceService.updateAppliance(updatedAppliance)
         .then(result => {
             if (!result.value) {res.status(404).send('Not found')}
             else {res.send(result.value)}
@@ -91,7 +85,7 @@ router.put('/:uuid', jsonParser, function (req, res) {
 })
 
 router.delete('/:uuid', function (req, res) {
-    softwareService.deleteSoftware(req.params.uuid)
+    applianceService.deleteAppliance(req.params.uuid)
         .then(result => {
             if (!result.value) {res.status(404).send('Not found')}
             else {res.send(result.value)}
@@ -99,22 +93,14 @@ router.delete('/:uuid', function (req, res) {
         .catch(err => res.status(400).send(err));
 })
 
-function validateSoftware(software) {
+function validateAppliance(appliance) {
     const schema = Joi.object({
         uuid: Joi.string().allow(null),
         name: Joi.string().required(),
         quantity: Joi.number().min(0).required(),
-        validFrom: Joi.alternatives([
-            Joi.date(),
-            Joi.string().valid(null)
-        ]),
-        validTo: Joi.alternatives([
-            Joi.date(),
-            Joi.string().valid(null)
-        ]),
     });
 
-    return schema.validate(software);
+    return schema.validate(appliance);
 }
 
 module.exports = router
