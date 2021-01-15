@@ -1,17 +1,29 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const app = express();
 
-const software = require('./software');
-const appliance = require('./appliance');
-const room = require('./room');
-const user = require('./user');
-const auth = require('./auth');
-const health = require('./health');
+const mongoUtil = require('./mongo-util')
 
-// app.use(bodyParser.urlencoded({
-//   extended: true
-// }));
+mongoUtil.connectToServer( err => {
+  if (err) {
+    console.log(err)
+  } else {
+    const software = require('./software/software');
+    const appliance = require('./appliance/appliance');
+    const room = require('./room/room');
+    const user = require('./user/user');
+    const auth = require('./auth/auth');
+    const health = require('./health');
+
+    app.use('/api/software', software);
+    app.use('/api/appliance', appliance);
+    app.use('/api/room', room);
+    app.use('/api/user', user);
+    app.use('/api/auth', auth);
+    app.use('/api/health', health);
+  }
+}
+);
+
 app.use(express.urlencoded({ extended: true }))
 
 app.get('/', (req, res) => {
@@ -25,13 +37,7 @@ app.use(function(req, res, next) {
     next();
   });
 
-app.use('/api/software', software);
-app.use('/api/appliance', appliance);
-app.use('/api/room', room);
-app.use('/api/user', user);
-app.use('/api/auth', auth);
-app.use('/api/health', health);
 
- 
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Listening on port ${port}....`));

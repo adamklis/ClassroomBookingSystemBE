@@ -1,0 +1,122 @@
+const express = require('express')
+const Joi = require('joi');
+const { v4: uuidv4 } = require('uuid');
+const router = express.Router();
+const bcrypt = require('bcrypt');
+
+const bodyParser = require('body-parser');
+const jsonParser = bodyParser.json();
+
+const UserService = require('./user-service');
+var userService = new UserService();
+
+router.get('/', function (req, res) {
+    userService.getUsers()
+        .then(result => res.send(
+            result.map((user) => {
+                delete user.password;
+                return user;
+            })
+        ))
+        .catch(err => res.status(400).send(err));
+})
+
+router.get('/:uuid', function (req, res) {
+    userService.getUser(req.params.uuid)
+        .then(result => {
+            if (!result) {res.status(404).send('Not found')}
+            else {
+                delete result.password;
+                res.send(result)
+            }
+        })
+        .catch(err => res.status(400).send(err));
+})
+
+router.post('/', jsonParser, function (req, res) {
+
+    userService.getUsers()
+    .then(users => {
+        if ( users.find(user => user.email === req.body.email)) {
+            return res.status(400).send("SHARED.ERROR.USER_EXIST");
+        } else {
+            const { error } = validateUser(req.body)
+            if (error) {
+                return res.status(400).send(error.details[0].message);
+            }
+            
+            const newUser = {
+                uuid: uuidv4(),
+                forename: req.body.forename,
+                surname: req.body.surname,
+                contact: req.body.contact,
+                email: req.body.email,
+                password: bcrypt.hashSync(req.body.password, 10),
+                permissions: []
+            }
+        
+            userService.addUser(newUser)
+                .then(result => {
+                    addedUser = result.ops[0];
+                    delete addedUser.password
+                    res.send(addedUser)
+                })
+                .catch(err => res.status(400).send(err));
+        }
+    })
+    .catch(err => res.status(400).send(err))
+       
+})
+
+router.put('/:uuid', jsonParser, function (req, res) {
+    const { error } = validateUser(req.body)
+    if (error) {
+        return res.status(400).send(error.details[0].message);
+    }
+    const updatedUser = {
+        uuid: req.body.uuid,
+        forename: req.body.forename,
+        surname: req.body.surname,
+        contact: req.body.contact,
+        email: req.body.email
+    }
+    if (req.body.password) {
+        updatedUser.password =  bcrypt.hashSync(req.body.password, 10)
+    }
+    userService.updateUser(updatedUser)
+        .then(result => {
+            resultUser = result.value;
+            delete resultUser.password
+            res.send(resultUser)
+        })
+        .catch(err => res.status(400).send(err));
+})
+
+router.delete('/:uuid', function (req, res) {
+    userService.deleteUser(req.params.uuid)
+        .then(result => {
+            if (!result.value) {res.status(404).send('Not found')}
+            else {
+                resultUser = result.value;
+                delete resultUser.password
+                res.send(resultUser)
+            }
+        })
+        .catch(err => res.status(400).send(err));
+})
+
+
+function validateUser(user) {
+    const schema = Joi.object({
+        uuid: Joi.string().allow(null),
+        forename: Joi.string().required(),
+        surname: Joi.string().required(),
+        contact: Joi.string().required(),
+        email: Joi.string().required(),
+        password: Joi.string().allow(null).allow(''),
+    });
+
+    return schema.validate(user);
+}
+
+module.exports = router

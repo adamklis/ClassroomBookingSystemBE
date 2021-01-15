@@ -1,0 +1,19 @@
+version: '3.3'
+
+services:
+  backend:
+    depends_on:
+      - db
+    image: adamklis/cbsbetest:latest
+    ports:
+      - "80:3000"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=27017
+    restart: always
+
+  db:
+    image: mongo:latest
+    volumes:
+      - ${WEBAPP_STORAGE_HOME}/db:/data/db
+    restart: always

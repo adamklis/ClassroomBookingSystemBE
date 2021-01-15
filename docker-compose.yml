@@ -1,0 +1,22 @@
+version: '3.3'
+
+services:
+  backend:
+    depends_on:
+      - db
+    image: adamklis/classroombookingsystembe:latest
+    ports:
+      - "80:3000"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=27017
+    restart: always
+
+  db:
+    image: mongo:latest
+    volumes:
+      - cbs_volume:/data/db
+    restart: always
+
+volumes:
+  cbs_volume:
