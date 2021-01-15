@@ -64,7 +64,7 @@ router.post('/', jsonParser, function (req, res) {
                 .catch(err => res.status(400).send(err));
         }
     })
-    .catch(err => {})
+    .catch(err => res.status(400).send(err))
        
 })
 

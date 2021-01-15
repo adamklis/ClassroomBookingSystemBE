@@ -1,8 +1,21 @@
 const MongoClient = require('mongodb').MongoClient;
-const HOST = process.env.DB_HOST || "localhost";
-const PORT = process.env.DB_PORT || "27017";
-const url =  `mongodb://${HOST}:${PORT}`;
+const DB_HOST = process.env.DB_HOST || "localhost";
+const DB_PORT = process.env.DB_PORT || "27017";
+const DB_OPTIONS = process.env.DB_OPTIONS || null;
+const DB_USER = process.env.DB_USER || null;
+const DB_PASS = process.env.DB_PASS || null;
 
+let url = "mongodb://";
+if (DB_USER && DB_PASS) {
+    url = url + DB_USER + ":" + DB_PASS + "@";
+}
+url = url + DB_HOST;
+if (DB_PORT) {
+    url = url + ":" + DB_PORT;
+}
+if (DB_OPTIONS) {
+    url = url + "/" + DB_OPTIONS;
+}
 var _db;
 
 module.exports = {

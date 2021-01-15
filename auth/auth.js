@@ -23,12 +23,21 @@ router.post('/get_token', jsonParser, function (req, res) {
           token_type: 'Bearer'
       };
       authService.addToken({user_uuid: user.uuid, key: token.access_token})
-      res.send(token);
+        .then((result) => {
+          return res.send(token)
+        })
+        .catch(err => {
+          console.log(err)
+          res.status(400).send(err)
+        })
     } else {
-      res.status(400).send('Bad credentials.');  
+      return res.status(400).send('Bad credentials.');  
     }
   })
-  .catch(err => res.status(400).send('User not found.'))
+  .catch(err => {
+    console.log(err)
+    res.status(400).send('User not found.')
+  })
 })
 
 router.get('/get_user', function (req, res) {
