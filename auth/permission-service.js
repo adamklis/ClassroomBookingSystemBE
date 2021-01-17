@@ -3,6 +3,9 @@ var authService = new AuthService();
 
 module.exports = class PermissionService {
     static checkPermissions(token, permission){
+        if (!token) {
+            token = "bearer 0000000000000000000000000000000000";
+        } 
         const key = token.substr(7);
         return authService.getUserByToken(key).toArray()
             .then(
