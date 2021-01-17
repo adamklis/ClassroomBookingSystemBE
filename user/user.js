@@ -92,6 +92,19 @@ router.put('/:uuid', jsonParser, function (req, res) {
         .catch(err => res.status(400).send(err));
 })
 
+router.put('/:uuid/permissions', jsonParser, function (req, res) {
+    const { error } = validatePermissions(req.body);
+    if (error) {
+        return res.status(400).send(error.message);
+    }
+
+    userService.updateUserPermissions(req.params.uuid, req.body)
+        .then(result => {
+            res.send(result.value.permissions)
+        })
+        .catch(err => res.status(400).send(err));
+})
+
 router.delete('/:uuid', function (req, res) {
     userService.deleteUser(req.params.uuid)
         .then(result => {
@@ -117,6 +130,29 @@ function validateUser(user) {
     });
 
     return schema.validate(user);
+}
+
+function validatePermissions(permissions) {
+    if (!permissions) {
+        return {error: {type: "Wrong permission", message: "Request body must be an array of permissions."}};
+    }
+
+    const validPermissions = [
+        "APPLIANCE_EDIT","APPLIANCE_VIEW","RESERVATION_EDIT","RESERVATION_EDIT_USER","RESERVATION_VIEW","RESERVATION_VIEW_USER",
+        "ROOM_EDIT","ROOM_VIEW","SOFTWARE_EDIT","SOFTWARE_VIEW","USER_EDIT","USER_VIEW","PERMISSION_VIEW","PERMISSION_EDIT","PROTECTED_USER"]
+
+    let permissionNotFound = false;
+    permissions.forEach(permission => {
+        if (validPermissions.findIndex(validPermission => validPermission === permission) === -1 ) {
+            permissionNotFound = true;
+            return;
+        }
+    })
+
+    if (permissionNotFound) {
+       return {error: {type: "Wrong permission", message: "Unexpected permission."}};
+    }
+    return {error: null};
 }
 
 module.exports = router

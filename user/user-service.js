@@ -33,6 +33,13 @@ module.exports = class UserService {
         
     }
 
+    updateUserPermissions(uuid, permissions) {
+        return db.collection('user').findOneAndUpdate(
+            { uuid: uuid },
+            { $set: {permissions: permissions} }
+        );
+    }
+
     deleteUser(uuid) {
         return db.collection('user').findOneAndDelete({uuid: uuid});
     }
