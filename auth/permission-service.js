@@ -7,7 +7,6 @@ module.exports = class PermissionService {
         return authService.getUserByToken(key).toArray()
             .then(
                 result => {
-                    console.log(result)
                     const user = result[0].user[0];
                     if (!user) { return false; }
                     
