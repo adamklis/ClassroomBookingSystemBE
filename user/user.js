@@ -51,45 +51,36 @@ router.get('/:uuid', function (req, res) {
 })
 
 router.post('/', jsonParser, function (req, res) {
-    PermissionService.checkPermissions(req.headers.authorization, PermissionEnum.USER_EDIT)
-    .then(permitted => {
-        if (!permitted) { 
-            return res.status(403).send("Not permited");
-        }
-
-        userService.getUsers()
-        .then(users => {
-            if ( users.find(user => user.email === req.body.email)) {
-                return res.status(400).send("SHARED.ERROR.USER_EXIST");
-            } else {
-                const { error } = validateUser(req.body)
-                if (error) {
-                    return res.status(400).send(error.details[0].message);
-                }
-                
-                const newUser = {
-                    uuid: uuidv4(),
-                    forename: req.body.forename,
-                    surname: req.body.surname,
-                    contact: req.body.contact,
-                    email: req.body.email,
-                    password: bcrypt.hashSync(req.body.password, 10),
-                    permissions: []
-                }
-            
-                userService.addUser(newUser)
-                    .then(result => {
-                        addedUser = result.ops[0];
-                        delete addedUser.password
-                        res.send(addedUser)
-                    })
-                    .catch(err => res.status(400).send(err));
+    userService.getUsers()
+    .then(users => {
+        if ( users.find(user => user.email === req.body.email)) {
+            return res.status(400).send("SHARED.ERROR.USER_EXIST");
+        } else {
+            const { error } = validateUser(req.body)
+            if (error) {
+                return res.status(400).send(error.details[0].message);
             }
-        })
-        .catch(err => res.status(400).send(err))
+            
+            const newUser = {
+                uuid: uuidv4(),
+                forename: req.body.forename,
+                surname: req.body.surname,
+                contact: req.body.contact,
+                email: req.body.email,
+                password: bcrypt.hashSync(req.body.password, 10),
+                permissions: []
+            }
+        
+            userService.addUser(newUser)
+                .then(result => {
+                    addedUser = result.ops[0];
+                    delete addedUser.password
+                    res.send(addedUser)
+                })
+                .catch(err => res.status(400).send(err));
+        }
     })
-    .catch(err => { return res.status(403).send("Not permited"); })
-       
+    .catch(err => res.status(400).send(err))       
 })
 
 router.put('/:uuid', jsonParser, function (req, res) {
