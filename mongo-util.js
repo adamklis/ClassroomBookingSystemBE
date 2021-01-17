@@ -54,6 +54,73 @@ module.exports = {
                         _db.createCollection("user", function (err, res) {
                             if (err) throw err;
                             console.log("User collection created!");
+                            exampleUsers = [
+                                {
+                                    uuid: 'ed5ffd54-d075-4b59-96bd-ff856cd1043d',
+                                    forename: 'Example',
+                                    surname: 'Admin',
+                                    contact: '691202553',
+                                    email: 'admin@classroombookingsystem.com',
+                                    password: '$2b$10$sZdZU4WFb/.1f76rt6GvLOj8pJEIfpgcfKPAIvPd5hSuhv.7BlYaO',
+                                    permissions: [
+                                        'APPLIANCE_EDIT',
+                                        'APPLIANCE_VIEW',
+                                        'RESERVATION_EDIT',
+                                        'RESERVATION_EDIT_USER',
+                                        'RESERVATION_VIEW',
+                                        'RESERVATION_VIEW_USER',
+                                        'ROOM_EDIT',
+                                        'ROOM_VIEW',
+                                        'SOFTWARE_EDIT',
+                                        'SOFTWARE_VIEW',
+                                        'USER_EDIT',
+                                        'USER_VIEW',
+                                        'PERMISSION_VIEW',
+                                        'PERMISSION_EDIT',
+                                        'PROTECTED_USER'
+                                    ]
+                                },
+                                {
+                                    uuid: 'ed5ffd54-d075-4b59-96bd-ff856cd1043e',
+                                    forename: 'Example',
+                                    surname: 'Technician',
+                                    contact: '691202553',
+                                    email: 'technician@classroombookingsystem.com',
+                                    password: '$2b$10$sZdZU4WFb/.1f76rt6GvLOj8pJEIfpgcfKPAIvPd5hSuhv.7BlYaO',
+                                    permissions: [
+                                        'APPLIANCE_EDIT',
+                                        'APPLIANCE_VIEW',
+                                        'RESERVATION_EDIT',
+                                        'RESERVATION_EDIT_USER',
+                                        'RESERVATION_VIEW',
+                                        'RESERVATION_VIEW_USER',
+                                        'ROOM_EDIT',
+                                        'ROOM_VIEW',
+                                        'SOFTWARE_EDIT',
+                                        'SOFTWARE_VIEW',
+                                        'USER_VIEW',
+                                        'PROTECTED_USER'
+                                    ]
+                                },
+                                {
+                                    uuid: 'ed5ffd54-d075-4b59-96bd-ff856cd1043f',
+                                    forename: 'Example',
+                                    surname: 'User',
+                                    contact: '691202553',
+                                    email: 'user@classroombookingsystem.com',
+                                    password: '$2b$10$sZdZU4WFb/.1f76rt6GvLOj8pJEIfpgcfKPAIvPd5hSuhv.7BlYaO',
+                                    permissions: [
+                                        'APPLIANCE_VIEW',
+                                        'RESERVATION_EDIT_USER',
+                                        'RESERVATION_VIEW',
+                                        'RESERVATION_VIEW_USER',
+                                        'ROOM_VIEW',
+                                        'SOFTWARE_VIEW',
+                                        'PROTECTED_USER'
+                                    ]
+                                }
+                            ]
+                            _db.collection('user').insertMany(exampleUsers);
                         })
                     }
 
@@ -63,7 +130,6 @@ module.exports = {
                             console.log("Token collection created!");
                         })
                     }
-
 
                     return callback(err);
                 });

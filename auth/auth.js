@@ -27,7 +27,6 @@ router.post('/get_token', jsonParser, function (req, res) {
           return res.send(token)
         })
         .catch(err => {
-          console.log(err)
           res.status(400).send(err)
         })
     } else {
