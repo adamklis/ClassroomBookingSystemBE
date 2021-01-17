@@ -11,9 +11,23 @@ module.exports = class AuthService {
     }
 
     getUserByToken(key) {
-        this.getToken(key).then(token => { 
-            return db.collection('user').findOne({uuid: token.client_id})
-        });
+        return db.collection('token').aggregate([
+            { 
+                $lookup:
+                {
+                    from: 'user',
+                    localField: 'user_uuid',
+                    foreignField: 'uuid',
+                    as: 'user'
+                }
+            },
+            {
+                $match:
+                {
+                    key: key
+                }
+            }
+        ])
     }
 
     addToken(token) {

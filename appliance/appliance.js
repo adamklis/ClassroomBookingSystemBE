@@ -9,88 +9,133 @@ const jsonParser = bodyParser.json();
 const ApplianceService = require('./appliance-service');
 var applianceService = new ApplianceService();
 
+const PermissionService = require('../auth/permission-service');
+const PermissionEnum = require('../auth/permission.enum');
+
 router.get('/', function (req, res) {
-    applianceService.getAppliances()
+    PermissionService.checkPermissions(req.headers.authorization, PermissionEnum.APPLIANCE_VIEW)
+    .then(permitted => {
+        if (!permitted) { 
+            return res.status(403).send("Not permited");
+        }
+        applianceService.getAppliances()
         .then(result => res.send(result))
         .catch(err => res.status(400).send(err))
+    })
+    .catch(err => { return res.status(403).send("Not permited"); })
 })
 
 router.get('/use', function (req, res) {
-    let uuidFilter = req.query.filter_uuid;
-    let nameFilter = req.query.filter_name;
-    applianceService.getAppliances()
-        .then(result => res.send(
-            result
-                .filter(item => 
-                    (!uuidFilter || item.uuid === uuidFilter) &&
-                    (!nameFilter || item.name.toLowerCase().indexOf(nameFilter.toLowerCase()) >= 0 )
-                )
-                .map(item => {
-                return {
-                    uuid: item.uuid,
-                    name: item.name,
-                    quantity: 0,
-                    maxQuantity: item.quantity,
-                    appliance: { uuid: item.uuid, name: item.name }
-                }
-                })
-        ));
+    PermissionService.checkPermissions(req.headers.authorization, PermissionEnum.APPLIANCE_VIEW)
+    .then(permitted => {
+        if (!permitted) { 
+            return res.status(403).send("Not permited");
+        }
+        let uuidFilter = req.query.filter_uuid;
+        let nameFilter = req.query.filter_name;
+        applianceService.getAppliances()
+            .then(result => res.send(
+                result
+                    .filter(item => 
+                        (!uuidFilter || item.uuid === uuidFilter) &&
+                        (!nameFilter || item.name.toLowerCase().indexOf(nameFilter.toLowerCase()) >= 0 )
+                    )
+                    .map(item => {
+                    return {
+                        uuid: item.uuid,
+                        name: item.name,
+                        quantity: 0,
+                        maxQuantity: item.quantity,
+                        appliance: { uuid: item.uuid, name: item.name }
+                    }
+                    })
+            ));
+        })
+        .catch(err => { return res.status(403).send("Not permited"); })
 })
 
 router.get('/:uuid', function (req, res) {
-    applianceService.getAppliance(req.params.uuid)
-        .then(result => {
-            if (!result) {res.status(404).send('Not found')}
-            else {res.send(result)}
-        })
-        .catch(err => res.status(400).send(err));
+    PermissionService.checkPermissions(req.headers.authorization, PermissionEnum.APPLIANCE_VIEW)
+    .then(permitted => {
+        if (!permitted) { 
+            return res.status(403).send("Not permited");
+        }
+        applianceService.getAppliance(req.params.uuid)
+            .then(result => {
+                if (!result) {res.status(404).send('Not found')}
+                else {res.send(result)}
+            })
+            .catch(err => res.status(400).send(err));
+    })
+    .catch(err => { return res.status(403).send("Not permited"); })
 })
 
 router.post('/', jsonParser, function (req, res) {
-    const { error } = validateAppliance(req.body)
-    if (error) {
-        return res.status(400).send(error.details[0].message);
-    }
-    
-    const newAppliance = {
-        uuid: uuidv4(),
-        name: req.body.name,
-        quantity: req.body.quantity
-    }
+    PermissionService.checkPermissions(req.headers.authorization, PermissionEnum.APPLIANCE_EDIT)
+    .then(permitted => {
+        if (!permitted) { 
+            return res.status(403).send("Not permited");
+        }
+        const { error } = validateAppliance(req.body)
+        if (error) {
+            return res.status(400).send(error.details[0].message);
+        }
+        
+        const newAppliance = {
+            uuid: uuidv4(),
+            name: req.body.name,
+            quantity: req.body.quantity
+        }
 
-    applianceService.addAppliance(newAppliance)
-        .then(result => res.send(result.ops))
-        .catch(err => res.status(400).send(err));
+        applianceService.addAppliance(newAppliance)
+            .then(result => res.send(result.ops))
+            .catch(err => res.status(400).send(err));
+        })
+    .catch(err => { return res.status(403).send("Not permited"); })
 })
 
 router.put('/:uuid', jsonParser, function (req, res) {
+    PermissionService.checkPermissions(req.headers.authorization, PermissionEnum.APPLIANCE_EDIT)
+    .then(permitted => {
+        if (!permitted) { 
+            return res.status(403).send("Not permited");
+        }
     
-    const { error } = validateAppliance(req.body)
-    if (error) {
-        return res.status(400).send(error.details[0].message);
-    }
+        const { error } = validateAppliance(req.body)
+        if (error) {
+            return res.status(400).send(error.details[0].message);
+        }
 
-    const updatedAppliance = {
-        uuid: req.body.uuid,
-        name: req.body.name,
-        quantity: req.body.quantity
-    };
+        const updatedAppliance = {
+            uuid: req.body.uuid,
+            name: req.body.name,
+            quantity: req.body.quantity
+        };
 
-    applianceService.updateAppliance(updatedAppliance)
-        .then(result => {
-            if (!result.value) {res.status(404).send('Not found')}
-            else {res.send(result.value)}
-        })
-        .catch(err => res.status(400).send(err));
+        applianceService.updateAppliance(updatedAppliance)
+            .then(result => {
+                if (!result.value) {res.status(404).send('Not found')}
+                else {res.send(result.value)}
+            })
+            .catch(err => res.status(400).send(err));
+    })
+    .catch(err => { return res.status(403).send("Not permited"); })
 })
 
 router.delete('/:uuid', function (req, res) {
-    applianceService.deleteAppliance(req.params.uuid)
-        .then(result => {
-            if (!result.value) {res.status(404).send('Not found')}
-            else {res.send(result.value)}
-        })
-        .catch(err => res.status(400).send(err));
+    PermissionService.checkPermissions(req.headers.authorization, PermissionEnum.APPLIANCE_EDIT)
+    .then(permitted => {
+        if (!permitted) { 
+            return res.status(403).send("Not permited");
+        }
+        applianceService.deleteAppliance(req.params.uuid)
+            .then(result => {
+                if (!result.value) {res.status(404).send('Not found')}
+                else {res.send(result.value)}
+            })
+            .catch(err => res.status(400).send(err));
+    })
+    .catch(err => { return res.status(403).send("Not permited"); })
 })
 
 function validateAppliance(appliance) {
