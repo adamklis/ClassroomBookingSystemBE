@@ -2,8 +2,8 @@ var mongoUtil = require( '../mongo-util' );
 var db = mongoUtil.getDb();
 module.exports = class SoftwareService {
 
-    getSoftwareList() {
-        return db.collection('software').find({}).toArray();
+    getSoftwareList(filters, sorts) {
+        return db.collection('software').find(filters).sort(sorts).toArray();
     }
 
     getSoftware(uuid) {
