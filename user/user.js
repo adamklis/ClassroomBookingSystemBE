@@ -19,7 +19,37 @@ router.get('/', function (req, res) {
         if (!permitted) { 
             return res.status(403).send("Not permited");
         }
-        userService.getUsers()
+
+        let filters = {$and: []};
+        let sorts = {};
+        for (let property in req.query) {
+            if (property.indexOf('filter') !== -1) {
+                let key = property.substring(7);
+                
+                if (key === "all"){
+                    filters.aggregate = {}
+                    filters.aggregate.addFields = {$addFields: {name: {$concat: ["$forename", " ", "$surname", " <", "$email", ">"]}}}
+                    filters.aggregate.match = {$match: {name: new RegExp(`.*${req.query[property]}.*`,"i")}}
+                } else {  
+                    if (Array.isArray(req.query[property])) {
+                        req.query[property].forEach(val => filters.$and.push({[key]: new RegExp(`.*${val}.*`,"i")}));
+                    }
+                    else {
+                        filters.$and.push({[key]: new RegExp(`.*${req.query[property]}.*`,"i")});
+                    }
+                }          
+            }
+            if (property.indexOf('sort') !== -1) {
+                let key = property.substring(5);
+                sorts[key] = {};
+                sorts[key] = req.query[property] === 'desc'? -1 : 1;
+            }
+        }
+        if (filters.$and.length === 0) {
+            delete filters.$and;
+        }
+
+        userService.getUsers(filters, sorts)
             .then(result => res.send(
                 result.map((user) => {
                     delete user.password;
