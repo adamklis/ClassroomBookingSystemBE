@@ -61,7 +61,15 @@ router.get('/', function (req, res) {
         }
         
         roomService.getRooms(filters, sorts)
-            .then(result => res.send(result))
+            .then(result => res.send(result.map((room) => {
+                return {
+                    uuid: room.uuid,
+                    name: room.name,
+                    numberOfSeats: room.numberOfSeats,
+                    appliances: room.appliances,
+                    software: room.software
+                }
+            })))
             .catch(err => res.status(400).send(err))
     })
     .catch(err => { return res.status(403).send("Not permited"); })
@@ -76,7 +84,13 @@ router.get('/:uuid', function (req, res) {
         roomService.getRoom(req.params.uuid)
             .then(result => {
                 if (!result) {res.status(404).send('Not found')}
-                else {res.send(result)}
+                else {res.send({
+                    uuid: result.uuid,
+                    name: result.name,
+                    numberOfSeats: result.numberOfSeats,
+                    appliances: result.appliances,
+                    software: result.software
+                })}
             })
             .catch(err => res.status(400).send(err));
     })
@@ -103,7 +117,16 @@ router.post('/', jsonParser, function (req, res) {
         }
 
         roomService.addRoom(newRoom)
-            .then(result => res.send(result.ops[0]))
+            .then(result => {
+                let room = result.ops[0];
+                res.send({
+                    uuid: room.uuid,
+                    name: room.name,
+                    numberOfSeats: room.numberOfSeats,
+                    appliances: room.appliances,
+                    software: room.software
+                })
+            })
             .catch(err => res.status(400).send(err));
     })
     .catch(err => { return res.status(403).send("Not permited"); })
@@ -133,7 +156,16 @@ router.put('/:uuid', jsonParser, function (req, res) {
         roomService.updateRoom(updatedRoom)
             .then(result => {
                 if (!result.value) {res.status(404).send('Not found')}
-                else {res.send(result.value)}
+                else {
+                    let room = result.value;
+                    res.send({
+                        uuid: room.uuid,
+                        name: room.name,
+                        numberOfSeats: room.numberOfSeats,
+                        appliances: room.appliances,
+                        software: room.software
+                    })
+                }
             })
             .catch(err => res.status(400).send(err));
     })
@@ -149,7 +181,16 @@ router.delete('/:uuid', function (req, res) {
         roomService.deleteRoom(req.params.uuid)
             .then(result => {
                 if (!result.value) {res.status(404).send('Not found')}
-                else {res.send(result.value)}
+                else {
+                    let room = result.value;
+                    res.send({
+                        uuid: room.uuid,
+                        name: room.name,
+                        numberOfSeats: room.numberOfSeats,
+                        appliances: room.appliances,
+                        software: room.software
+                    })
+                }
             })
             .catch(err => res.status(400).send(err));
     })

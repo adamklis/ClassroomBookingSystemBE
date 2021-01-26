@@ -52,8 +52,14 @@ router.get('/', function (req, res) {
         userService.getUsers(filters, sorts)
             .then(result => res.send(
                 result.map((user) => {
-                    delete user.password;
-                    return user;
+                    return {
+                        uuid: user.uuid,
+                        forename: user.forename,
+                        surname: user.surname,
+                        email: user.email,
+                        contact: user.contact,
+                        permissions: user.permissions
+                    };
                 })
             ))
             .catch(err => res.status(400).send(err));
@@ -71,8 +77,14 @@ router.get('/:uuid', function (req, res) {
             .then(result => {
                 if (!result) {res.status(404).send('Not found')}
                 else {
-                    delete result.password;
-                    res.send(result)
+                    res.send({
+                        uuid: result.uuid,
+                        forename: result.forename,
+                        surname: result.surname,
+                        email: result.email,
+                        contact: result.contact,
+                        permissions: result.permissions
+                    })
                 }
             })
             .catch(err => res.status(400).send(err));
@@ -104,8 +116,14 @@ router.post('/', jsonParser, function (req, res) {
             userService.addUser(newUser)
                 .then(result => {
                     addedUser = result.ops[0];
-                    delete addedUser.password
-                    res.send(addedUser)
+                    res.send({
+                        uuid: addedUser.uuid,
+                        forename: addedUser.forename,
+                        surname: addedUser.surname,
+                        email: addedUser.email,
+                        contact: addedUser.contact,
+                        permissions: addedUser.permissions
+                    })
                 })
                 .catch(err => res.status(400).send(err));
         }
@@ -136,8 +154,14 @@ router.put('/:uuid', jsonParser, function (req, res) {
         userService.updateUser(updatedUser)
             .then(result => {
                 resultUser = result.value;
-                delete resultUser.password
-                res.send(resultUser)
+                res.send({
+                    uuid: resultUser.uuid,
+                    forename: resultUser.forename,
+                    surname: resultUser.surname,
+                    email: resultUser.email,
+                    contact: resultUser.contact,
+                    permissions: resultUser.permissions
+                });
             })
             .catch(err => res.status(400).send(err));
     })
@@ -175,8 +199,14 @@ router.delete('/:uuid', function (req, res) {
                 if (!result.value) {res.status(404).send('Not found')}
                 else {
                     resultUser = result.value;
-                    delete resultUser.password
-                    res.send(resultUser)
+                    res.send({
+                        uuid: resultUser.uuid,
+                        forename: resultUser.forename,
+                        surname: resultUser.surname,
+                        email: resultUser.email,
+                        contact: resultUser.contact,
+                        permissions: resultUser.permissions
+                    });
                 }
             })
             .catch(err => res.status(400).send(err));

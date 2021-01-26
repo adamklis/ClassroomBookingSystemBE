@@ -4,8 +4,6 @@ module.exports = class UserService {
 
     getUsers(filters, sorts) {
         if (filters.aggregate){
-            console.log(filters.aggregate.addFields)
-            console.log(filters.aggregate.match)
             return db.collection('user').aggregate([filters.aggregate.addFields, filters.aggregate.match]).toArray();
         } else {
             return db.collection('user').find(filters).sort(sorts).toArray();

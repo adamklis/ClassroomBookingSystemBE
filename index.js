@@ -7,6 +7,7 @@ mongoUtil.connectToServer( err => {
   if (err) {
     console.log(err)
   } else {
+    const reservation = require('./reservation/reservation');
     const software = require('./software/software');
     const appliance = require('./appliance/appliance');
     const room = require('./room/room');
@@ -14,6 +15,7 @@ mongoUtil.connectToServer( err => {
     const auth = require('./auth/auth');
     const health = require('./health');
 
+    app.use('/api/reservation', reservation);
     app.use('/api/software', software);
     app.use('/api/appliance', appliance);
     app.use('/api/room', room);
