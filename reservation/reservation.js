@@ -15,7 +15,7 @@ const PermissionEnum = require('../auth/permission.enum');
 router.get('/', function (req, res) {
     PermissionService.checkPermissions(req.headers.authorization, PermissionEnum.RESERVATION_VIEW)
     .then(permitted => {
-        if (!permitted) { 
+        if (!permitted) {
             return res.status(403).send("Not permited");
         }
 
@@ -23,13 +23,28 @@ router.get('/', function (req, res) {
         let sorts = {};
         for (let property in req.query) {
             if (property.indexOf('filter') !== -1) { 
-                filters[property.substring(7)] = {};
-                filters[property.substring(7)] = new RegExp(`.*${req.query[property]}.*`,"i");
+                let key = property.substring(7);
+                if (req.query['filter_dateFrom'] && req.query['filter_dateTo']){
+                    filters['$or'] = [
+                        {dateFrom: {"$gt": new Date(req.query['filter_dateFrom']), "$lt": new Date(req.query['filter_dateTo'])}},
+                        {dateTo: {"$gt": new Date(req.query['filter_dateFrom']), "$lt": new Date(req.query['filter_dateTo'])}},
+                        {$and: [{dateFrom: {"$lte": new Date(req.query['filter_dateFrom'])}}, {dateTo: {"$gte": new Date(req.query['filter_dateTo'])}}]},
+                        {$and: [{dateFrom: {"$gte": new Date(req.query['filter_dateFrom'])}}, {dateTo: {"$lte": new Date(req.query['filter_dateTo'])}}]}
+                    ]
+                } else if (req.query['filter_dateFrom']){
+                    filters['dateFrom'] = {"$gt": new Date(req.query['filter_dateFrom'])};
+                } else if (req.query['filter_dateTo']){
+                    filters['dateTo'] = {"$lt": new Date(req.query['filter_dateTo'])};
+                } else {
+                    filters[key] = {};
+                    filters[key] = new RegExp(`.*${req.query[property]}.*`,"i");
+                }
                 
             }
             if (property.indexOf('sort') !== -1) { 
-                sorts[property.substring(5)] = {};
-                sorts[property.substring(5)] = req.query[property] === 'desc'? -1 : 1;
+                let key = property.substring(5);
+                sorts[key] = {};
+                sorts[key] = req.query[property] === 'desc'? -1 : 1;
             }
         }
 
@@ -37,7 +52,7 @@ router.get('/', function (req, res) {
             .then(result => res.send(result))
             .catch(err => res.status(400).send(err))
     })
-    .catch(err => { return res.status(403).send("Not permited"); })
+    .catch(err => {console.log(err); return res.status(403).send("Not permited"); })
 })
 
 router.get('/:uuid', function (req, res) {
@@ -72,8 +87,8 @@ router.post('/', jsonParser, function (req, res) {
             user: req.body.user,
             room: req.body.room,
             message: req.body.message,
-            dateFrom: req.body.dateFrom,
-            dateTo: req.body.dateTo
+            dateFrom: new Date(req.body.dateFrom),
+            dateTo: new Date(req.body.dateTo)
         }
 
         reservationService.addReservation(newReservation)
@@ -110,8 +125,8 @@ router.put('/:uuid', jsonParser, function (req, res) {
             user: req.body.user,
             room: req.body.room,
             message: req.body.message,
-            dateFrom: req.body.dateFrom,
-            dateTo: req.body.dateTo
+            dateFrom: new Date(req.body.dateFrom),
+            dateTo: new Date(req.body.dateTo)
         };
 
         reservationService.updateReservation(updatedReservation)
