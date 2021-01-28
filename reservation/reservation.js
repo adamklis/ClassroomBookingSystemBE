@@ -12,10 +12,14 @@ var reservationService = new ReservationService();
 const PermissionService = require('../auth/permission-service');
 const PermissionEnum = require('../auth/permission.enum');
 
+const AuthService = require('../auth/auth-service');
+const e = require('express');
+var authService = new AuthService();
+
 router.get('/', function (req, res) {
-    PermissionService.checkPermissions(req.headers.authorization, PermissionEnum.RESERVATION_VIEW)
-    .then(permitted => {
-        if (!permitted) {
+    PermissionService.checkPermissions(req.headers.authorization, [PermissionEnum.RESERVATION_VIEW, PermissionEnum.RESERVATION_VIEW_USER])
+        .then(permitted => {
+        if (!permitted || permitted.length === 0) {
             return res.status(403).send("Not permited");
         }
 
@@ -49,22 +53,44 @@ router.get('/', function (req, res) {
         }
 
         reservationService.getReservations(filters, sorts)
-            .then(result => res.send(result))
+            .then(result => {
+                if (permitted.findIndex(permission => permission === PermissionEnum.RESERVATION_VIEW) === -1) {
+                    authService.getUserByToken(req.headers.authorization.substr(7)).toArray().then(users =>{
+                        result = result.filter(reservation => reservation.user.uuid === users[0].user[0].uuid);
+                        return res.send(result);
+                    })
+                } else {
+                    res.send(result);
+                }
+            })
             .catch(err => res.status(400).send(err))
     })
     .catch(err => {console.log(err); return res.status(403).send("Not permited"); })
 })
 
 router.get('/:uuid', function (req, res) {
-    PermissionService.checkPermissions(req.headers.authorization, PermissionEnum.RESERVATION_VIEW)
+    PermissionService.checkPermissions(req.headers.authorization, [PermissionEnum.RESERVATION_VIEW, PermissionEnum.RESERVATION_VIEW_USER])
     .then(permitted => {
-        if (!permitted) { 
+        if (!permitted || permitted.length === 0) { 
             return res.status(403).send("Not permited");
         }
         reservationService.getReservation(req.params.uuid)
             .then(result => {
                 if (!result) {res.status(404).send('Not found')}
-                else {res.send(result)}
+                else {
+                    if (permitted.findIndex(permission => permission === PermissionEnum.RESERVATION_VIEW) === -1) {
+                        authService.getUserByToken(req.headers.authorization.substr(7)).toArray().then(users =>{
+                            if (result.user.uuid === users[0].user[0].uuid){
+                                return res.send(result);
+                            } else {
+                                return res.status(403).send("Not permited");
+                            }
+                        }).catch((err) => {console.log(err); return res.status(403).send("Not permited");});
+                    } else {
+                        return res.send(result);
+                    }
+                    
+                }
             })
             .catch(err => res.status(400).send(err));
     })
@@ -72,9 +98,9 @@ router.get('/:uuid', function (req, res) {
 })
 
 router.post('/', jsonParser, function (req, res) {
-    PermissionService.checkPermissions(req.headers.authorization, PermissionEnum.RESERVATION_EDIT)
+    PermissionService.checkPermissions(req.headers.authorization, [PermissionEnum.RESERVATION_EDIT, PermissionEnum.RESERVATION_EDIT_USER])
     .then(permitted => {
-        if (!permitted) { 
+        if (!permitted || permitted.length === 0) { 
             return res.status(403).send("Not permited");
         }
         const { error } = validateReservation(req.body)
@@ -82,6 +108,14 @@ router.post('/', jsonParser, function (req, res) {
             return res.status(400).send(error.details[0].message);
         }
         
+        if (permitted.findIndex(permission => permission === PermissionEnum.RESERVATION_EDIT) === -1) {
+            authService.getUserByToken(req.headers.authorization.substr(7)).toArray().then(users =>{
+                if (req.body.user.uuid !== users[0].user[0].uuid){
+                    return res.status(403).send("Not permited");
+                }
+            }).catch(err => {return res.status(403).send("Not permited");});
+        }
+
         const newReservation = {
             uuid: uuidv4(),
             user: req.body.user,
@@ -109,9 +143,9 @@ router.post('/', jsonParser, function (req, res) {
 })
 
 router.put('/:uuid', jsonParser, function (req, res) {
-    PermissionService.checkPermissions(req.headers.authorization, PermissionEnum.SOFTWARE_EDIT)
+    PermissionService.checkPermissions(req.headers.authorization, [PermissionEnum.RESERVATION_EDIT, PermissionEnum.RESERVATION_EDIT_USER])
     .then(permitted => {
-        if (!permitted) { 
+        if (!permitted || permitted.length === 0) { 
             return res.status(403).send("Not permited");
         }
         
@@ -129,48 +163,106 @@ router.put('/:uuid', jsonParser, function (req, res) {
             dateTo: new Date(req.body.dateTo)
         };
 
-        reservationService.updateReservation(updatedReservation)
-            .then(result => {
-                if (!result.value) {res.status(404).send('Not found')}
-                else {
-                    let reservation = result.value;
-                    res.send({
-                        uuid: reservation.uuid,
-                        user: reservation.user,
-                        room: reservation.room,
-                        message: reservation.message,
-                        dateFrom: reservation.dateFrom,
-                        dateTo: reservation.dateTo
-                    });
-                }
-            })
-            .catch(err => res.status(400).send(err));
+        reservationService.getReservation(req.params.uuid)
+        .then(reservation => {
+            if (permitted.findIndex(permission => permission === PermissionEnum.RESERVATION_EDIT) === -1) {
+                authService.getUserByToken(req.headers.authorization.substr(7)).toArray().then(users =>{
+                    if (reservation.user.uuid !== users[0].user[0].uuid){
+                        return res.status(403).send("Not permited");
+                    } else {
+                        reservationService.updateReservation(updatedReservation)
+                        .then(result => {
+                            if (!result.value) {res.status(404).send('Not found')}
+                            else {
+                                let reservation = result.value;
+                                res.send({
+                                    uuid: reservation.uuid,
+                                    user: reservation.user,
+                                    room: reservation.room,
+                                    message: reservation.message,
+                                    dateFrom: reservation.dateFrom,
+                                    dateTo: reservation.dateTo
+                                });
+                            }
+                        })
+                        .catch(err => res.status(400).send(err));
+                    }
+                }).catch(err => {return res.status(403).send("Not permited");});
+            } else {
+                reservationService.updateReservation(updatedReservation)
+                .then(result => {
+                    if (!result.value) {res.status(404).send('Not found')}
+                    else {
+                        let reservation = result.value;
+                        res.send({
+                            uuid: reservation.uuid,
+                            user: reservation.user,
+                            room: reservation.room,
+                            message: reservation.message,
+                            dateFrom: reservation.dateFrom,
+                            dateTo: reservation.dateTo
+                        });
+                    }
+                })
+                .catch(err => res.status(400).send(err));
+            }
+        })
     })
     .catch(err => { return res.status(403).send("Not permited"); })
 })
 
 router.delete('/:uuid', function (req, res) {
-    PermissionService.checkPermissions(req.headers.authorization, PermissionEnum.SOFTWARE_EDIT)
+    PermissionService.checkPermissions(req.headers.authorization, [PermissionEnum.RESERVATION_EDIT, PermissionEnum.RESERVATION_EDIT_USER])
     .then(permitted => {
-        if (!permitted) { 
+        if (!permitted || permitted.length === 0) { 
             return res.status(403).send("Not permited");
         }
-        reservationService.deleteReservation(req.params.uuid)
-            .then(result => {
-                if (!result.value) {res.status(404).send('Not found')}
-                else {
-                    let reservation = result.value;
-                    res.send({
-                        uuid: reservation.uuid,
-                        user: reservation.user,
-                        room: reservation.room,
-                        message: reservation.message,
-                        dateFrom: reservation.dateFrom,
-                        dateTo: reservation.dateTo
-                    });
-                }
-            })
-            .catch(err => res.status(400).send(err));
+
+        reservationService.getReservation(req.params.uuid)
+        .then(reservation => {
+            if (permitted.findIndex(permission => permission === PermissionEnum.RESERVATION_EDIT) === -1) {
+                authService.getUserByToken(req.headers.authorization.substr(7)).toArray().then(users =>{
+                    if (reservation.user.uuid !== users[0].user[0].uuid){
+                        return res.status(403).send("Not permited");
+                    } else {
+                        reservationService.deleteReservation(req.params.uuid)
+                        .then(result => {
+                            if (!result.value) {res.status(404).send('Not found')}
+                            else {
+                                let reservation = result.value;
+                                res.send({
+                                    uuid: reservation.uuid,
+                                    user: reservation.user,
+                                    room: reservation.room,
+                                    message: reservation.message,
+                                    dateFrom: reservation.dateFrom,
+                                    dateTo: reservation.dateTo
+                                });
+                            }
+                        })
+                        .catch(err => res.status(400).send(err));
+                    }
+                }).catch(err => {return res.status(403).send("Not permited");});
+            } else {
+                reservationService.deleteReservation(req.params.uuid)
+                .then(result => {
+                    if (!result.value) {res.status(404).send('Not found')}
+                    else {
+                        let reservation = result.value;
+                        res.send({
+                            uuid: reservation.uuid,
+                            user: reservation.user,
+                            room: reservation.room,
+                            message: reservation.message,
+                            dateFrom: reservation.dateFrom,
+                            dateTo: reservation.dateTo
+                        });
+                    }
+                })
+                .catch(err => res.status(400).send(err));
+            }
+        })
+        .catch(err => {return res.status(404).send('Not found')});
     })
     .catch(err => { return res.status(403).send("Not permited"); })
 })
