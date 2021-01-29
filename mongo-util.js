@@ -29,6 +29,13 @@ module.exports = {
                 console.log("DB Connected!");
 
                 _db.listCollections().toArray().then(collections => {
+                    if (!collections.find(collection => collection.name === 'reservation')) {
+                        _db.createCollection("reservation", function (err, res) {
+                            if (err) throw err;
+                            console.log("Reservation collection created!");
+                        })
+                    }
+
                     if (!collections.find(collection => collection.name === 'software')) {
                         _db.createCollection("software", function (err, res) {
                             if (err) throw err;

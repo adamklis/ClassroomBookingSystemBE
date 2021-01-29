@@ -18,8 +18,58 @@ router.get('/', function (req, res) {
         if (!permitted) { 
             return res.status(403).send("Not permited");
         }
-        roomService.getRooms()
-            .then(result => res.send(result))
+
+        let filters = {$and: []};
+        let sorts = {};
+        for (let property in req.query) {
+            if (property.indexOf('filter') !== -1) {
+                let key = property.substring(7);
+                
+                if (key === "keyword_int"){
+                    key = "numberOfSeats";
+                    if (Array.isArray(req.query[property])) {
+                        req.query[property].forEach(val => filters.$and.push({[key]: { $gte: Number(val)}}));
+                    } else {
+                        filters.$and.push({[key]: { $gte: Number(req.query[property])}});
+                    }
+                } else {
+                    if (key === "keyword") {
+                        key = "name";
+                    } else if (key === "appliance") {
+                        key = "appliances.name";
+                    } else if (key === "software") {
+                        key = "software.name";
+                    }
+    
+                    if (Array.isArray(req.query[property])) {
+                        req.query[property].forEach(val => filters.$and.push({[key]: new RegExp(`.*${val}.*`,"i")}));
+                    }
+                    else {
+                        filters.$and.push({[key]: new RegExp(`.*${req.query[property]}.*`,"i")});
+                    }
+                }
+                       
+            }
+            if (property.indexOf('sort') !== -1) {
+                let key = property.substring(5);
+                sorts[key] = {};
+                sorts[key] = req.query[property] === 'desc'? -1 : 1;
+            }
+        }
+        if (filters.$and.length === 0) {
+            delete filters.$and;
+        }
+        
+        roomService.getRooms(filters, sorts)
+            .then(result => res.send(result.map((room) => {
+                return {
+                    uuid: room.uuid,
+                    name: room.name,
+                    numberOfSeats: room.numberOfSeats,
+                    appliances: room.appliances,
+                    software: room.software
+                }
+            })))
             .catch(err => res.status(400).send(err))
     })
     .catch(err => { return res.status(403).send("Not permited"); })
@@ -34,7 +84,13 @@ router.get('/:uuid', function (req, res) {
         roomService.getRoom(req.params.uuid)
             .then(result => {
                 if (!result) {res.status(404).send('Not found')}
-                else {res.send(result)}
+                else {res.send({
+                    uuid: result.uuid,
+                    name: result.name,
+                    numberOfSeats: result.numberOfSeats,
+                    appliances: result.appliances,
+                    software: result.software
+                })}
             })
             .catch(err => res.status(400).send(err));
     })
@@ -61,7 +117,16 @@ router.post('/', jsonParser, function (req, res) {
         }
 
         roomService.addRoom(newRoom)
-            .then(result => res.send(result.ops[0]))
+            .then(result => {
+                let room = result.ops[0];
+                res.send({
+                    uuid: room.uuid,
+                    name: room.name,
+                    numberOfSeats: room.numberOfSeats,
+                    appliances: room.appliances,
+                    software: room.software
+                })
+            })
             .catch(err => res.status(400).send(err));
     })
     .catch(err => { return res.status(403).send("Not permited"); })
@@ -91,7 +156,16 @@ router.put('/:uuid', jsonParser, function (req, res) {
         roomService.updateRoom(updatedRoom)
             .then(result => {
                 if (!result.value) {res.status(404).send('Not found')}
-                else {res.send(result.value)}
+                else {
+                    let room = result.value;
+                    res.send({
+                        uuid: room.uuid,
+                        name: room.name,
+                        numberOfSeats: room.numberOfSeats,
+                        appliances: room.appliances,
+                        software: room.software
+                    })
+                }
             })
             .catch(err => res.status(400).send(err));
     })
@@ -107,7 +181,16 @@ router.delete('/:uuid', function (req, res) {
         roomService.deleteRoom(req.params.uuid)
             .then(result => {
                 if (!result.value) {res.status(404).send('Not found')}
-                else {res.send(result.value)}
+                else {
+                    let room = result.value;
+                    res.send({
+                        uuid: room.uuid,
+                        name: room.name,
+                        numberOfSeats: room.numberOfSeats,
+                        appliances: room.appliances,
+                        software: room.software
+                    })
+                }
             })
             .catch(err => res.status(400).send(err));
     })

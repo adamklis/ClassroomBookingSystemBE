@@ -2,8 +2,12 @@ var mongoUtil = require( '../mongo-util' );
 var db = mongoUtil.getDb();
 module.exports = class UserService {
 
-    getUsers() {
-        return db.collection('user').find({}).toArray();
+    getUsers(filters, sorts) {
+        if (filters.aggregate){
+            return db.collection('user').aggregate([filters.aggregate.addFields, filters.aggregate.match]).toArray();
+        } else {
+            return db.collection('user').find(filters).sort(sorts).toArray();
+        }
     }
 
     getUser(uuid) {

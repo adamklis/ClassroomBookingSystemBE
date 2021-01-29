@@ -11,10 +11,13 @@ module.exports = class PermissionService {
             .then(
                 result => {
                     const user = result[0].user[0];
-                    if (!user) { return false; }
-                    
-                    return user.permissions.findIndex(userPermission => userPermission === permission ) !== -1
+                    if (!user) { return null; }
+                    if (Array.isArray(permission)){                        
+                        return user.permissions.filter(userPermission => permission.findIndex(perm => perm === userPermission) !== -1);
+                    } else {
+                        return user.permissions.find(userPermission => userPermission === permission );
+                    }
                 })
-            .catch(err => { return false; })
+            .catch(err => { return null; })
     }
 }

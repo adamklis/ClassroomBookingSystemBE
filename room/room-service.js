@@ -2,8 +2,8 @@ var mongoUtil = require( '../mongo-util' );
 var db = mongoUtil.getDb();
 module.exports = class RoomService {
 
-    getRooms() {
-        return db.collection('room').find({}).toArray();
+    getRooms(filters, sorts) {
+        return db.collection('room').find(filters).sort(sorts).toArray();
     }
 
     getRoom(uuid) {

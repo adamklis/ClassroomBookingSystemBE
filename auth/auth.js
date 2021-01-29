@@ -46,8 +46,14 @@ router.get('/get_user', function (req, res) {
     } else {
       userService.getUser(token.user_uuid)
         .then(user => {
-          delete user.password;
-          res.send(user)
+          res.send({
+            uuid: user.uuid,
+            forename: user.forename,
+            surname: user.surname,
+            email: user.email,
+            contact: user.contact,
+            permissions: user.permissions
+          });
         })
         .catch(err => res.status(404).send('User not found.'))
     }

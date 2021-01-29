@@ -2,8 +2,8 @@ var mongoUtil = require( '../mongo-util' );
 var db = mongoUtil.getDb();
 module.exports = class ApplianceService {
 
-    getAppliances() {
-        return db.collection('appliance').find({}).toArray();
+    getAppliances(filters, sorts) {
+        return db.collection('appliance').find(filters).sort(sorts).toArray();
     }
 
     getAppliance(uuid) {

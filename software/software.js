@@ -18,7 +18,22 @@ router.get('/', function (req, res) {
         if (!permitted) { 
             return res.status(403).send("Not permited");
         }
-        softwareService.getSoftwareList()
+
+        let filters = {};
+        let sorts = {};
+        for (let property in req.query) {
+            if (property.indexOf('filter') !== -1) { 
+                filters[property.substring(7)] = {};
+                filters[property.substring(7)] = new RegExp(`.*${req.query[property]}.*`,"i");
+                
+            }
+            if (property.indexOf('sort') !== -1) { 
+                sorts[property.substring(5)] = {};
+                sorts[property.substring(5)] = req.query[property] === 'desc'? -1 : 1;
+            }
+        }
+
+        softwareService.getSoftwareList(filters, sorts)
             .then(result => res.send(result))
             .catch(err => res.status(400).send(err))
     })
