@@ -3,7 +3,7 @@ var db = mongoUtil.getDb();
 module.exports = class UserService {
 
     getUsers(filters, sorts) {
-        if (filters.aggregate){
+        if (filters?.aggregate){
             return db.collection('user').aggregate([filters.aggregate.addFields, filters.aggregate.match]).toArray();
         } else {
             return db.collection('user').find(filters).sort(sorts).toArray();
