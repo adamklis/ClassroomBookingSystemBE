@@ -137,33 +137,41 @@ router.put('/:uuid', jsonParser, function (req, res) {
         if (!permitted) { 
             return res.status(403).send("Not permited");
         }
-        const { error } = validateUser(req.body)
-        if (error) {
-            return res.status(400).send(error.details[0].message);
-        }
-        const updatedUser = {
-            uuid: req.body.uuid,
-            forename: req.body.forename,
-            surname: req.body.surname,
-            contact: req.body.contact,
-            email: req.body.email
-        }
-        if (req.body.password) {
-            updatedUser.password =  bcrypt.hashSync(req.body.password, 10)
-        }
-        userService.updateUser(updatedUser)
-            .then(result => {
-                resultUser = result.value;
-                res.send({
-                    uuid: resultUser.uuid,
-                    forename: resultUser.forename,
-                    surname: resultUser.surname,
-                    email: resultUser.email,
-                    contact: resultUser.contact,
-                    permissions: resultUser.permissions
-                });
+
+        userService.getUsers()
+        .then(users => {
+            if ( users.find(user => user.email === req.body.email && user.uuid !== req.body.uuid)) {
+                return res.status(400).send("SHARED.ERROR.USER_EXIST");
+            } else {
+                const { error } = validateUser(req.body)
+                if (error) {
+                    return res.status(400).send(error.details[0].message);
+                }
+                const updatedUser = {
+                    uuid: req.body.uuid,
+                    forename: req.body.forename,
+                    surname: req.body.surname,
+                    contact: req.body.contact,
+                    email: req.body.email
+                }
+                if (req.body.password) {
+                    updatedUser.password =  bcrypt.hashSync(req.body.password, 10)
+                }
+                userService.updateUser(updatedUser)
+                    .then(result => {
+                        resultUser = result.value;
+                        res.send({
+                            uuid: resultUser.uuid,
+                            forename: resultUser.forename,
+                            surname: resultUser.surname,
+                            email: resultUser.email,
+                            contact: resultUser.contact,
+                            permissions: resultUser.permissions
+                        });
+                    })
+                    .catch(err => res.status(400).send(err));
+                }
             })
-            .catch(err => res.status(400).send(err));
     })
     .catch(err => { return res.status(403).send("Not permited"); })
 })
