@@ -19,18 +19,36 @@ router.get('/', function (req, res) {
             return res.status(403).send("Not permited");
         }
 
-        let filters = {};
+        let filters = {$and: []};
         let sorts = {};
         for (let property in req.query) {
+            let key = property.substring(7);
             if (property.indexOf('filter') !== -1) { 
-                filters[property.substring(7)] = {};
-                filters[property.substring(7)] = new RegExp(`.*${req.query[property]}.*`,"i");
+                let key = property.substring(7);
                 
+                if (key === "quantity"){
+                    if (Array.isArray(req.query[property])) {
+                        req.query[property].forEach(val => filters.$and.push({[key]: { $gte: Number(val)}}));
+                    } else {
+                        filters.$and.push({[key]: { $gte: Number(req.query[property])}});
+                    }
+                } else {   
+                    if (Array.isArray(req.query[property])) {
+                        req.query[property].forEach(val => filters.$and.push({[key]: new RegExp(`.*${val}.*`,"i")}));
+                    }
+                    else {
+                        filters.$and.push({[key]: new RegExp(`.*${req.query[property]}.*`,"i")});
+                    }
+                }
             }
             if (property.indexOf('sort') !== -1) { 
                 sorts[property.substring(5)] = {};
                 sorts[property.substring(5)] = req.query[property] === 'desc'? -1 : 1;
             }
+        }
+
+        if (!filters.$and || filters.$and.length === 0){
+            delete filters.$and;
         }
         
         applianceService.getAppliances(filters, sorts)

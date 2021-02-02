@@ -23,27 +23,33 @@ router.get('/', function (req, res) {
             return res.status(403).send("Not permited");
         }
 
-        let filters = {};
+        let filters = {$and: []};
         let sorts = {};
+        if (req.query['filter_dateFrom'] && req.query['filter_dateTo']){
+            filters.$and.push(
+                { $or: [
+                {dateFrom: {"$gt": new Date(req.query['filter_dateFrom']), "$lt": new Date(req.query['filter_dateTo'])}},
+                {dateTo: {"$gt": new Date(req.query['filter_dateFrom']), "$lt": new Date(req.query['filter_dateTo'])}},
+                {$and: [{dateFrom: {"$lte": new Date(req.query['filter_dateFrom'])}}, {dateTo: {"$gte": new Date(req.query['filter_dateTo'])}}]},
+                {$and: [{dateFrom: {"$gte": new Date(req.query['filter_dateFrom'])}}, {dateTo: {"$lte": new Date(req.query['filter_dateTo'])}}]}
+            ]});
+        }
         for (let property in req.query) {
             if (property.indexOf('filter') !== -1) { 
                 let key = property.substring(7);
-                if (req.query['filter_dateFrom'] && req.query['filter_dateTo']){
-                    filters['$or'] = [
-                        {dateFrom: {"$gt": new Date(req.query['filter_dateFrom']), "$lt": new Date(req.query['filter_dateTo'])}},
-                        {dateTo: {"$gt": new Date(req.query['filter_dateFrom']), "$lt": new Date(req.query['filter_dateTo'])}},
-                        {$and: [{dateFrom: {"$lte": new Date(req.query['filter_dateFrom'])}}, {dateTo: {"$gte": new Date(req.query['filter_dateTo'])}}]},
-                        {$and: [{dateFrom: {"$gte": new Date(req.query['filter_dateFrom'])}}, {dateTo: {"$lte": new Date(req.query['filter_dateTo'])}}]}
-                    ]
-                } else if (req.query['filter_dateFrom']){
-                    filters['dateFrom'] = {"$gt": new Date(req.query['filter_dateFrom'])};
-                } else if (req.query['filter_dateTo']){
-                    filters['dateTo'] = {"$lt": new Date(req.query['filter_dateTo'])};
-                } else {
-                    filters[key] = {};
-                    filters[key] = new RegExp(`.*${req.query[property]}.*`,"i");
+                if (key === 'dateFrom' && !req.query['filter_dateTo']){
+                    filters.$and.push({dateFrom: {"$gt": new Date(req.query['filter_dateFrom'])}});
+                } else if (key === 'dateTo' && !req.query['filter_dateFrom']){
+                    filters.$and.push({dateTo: {"$lt": new Date(req.query['filter_dateTo'])}});
+                } else if (key === 'keyword') {
+                    let field = {}
+                    field['message'] = new RegExp(`.*${req.query[property]}.*`,"i");
+                    filters.$and.push(field);
+                } else if (key !== 'dateFrom' && key !== 'dateTo') {
+                    let field = {}
+                    field[key] = req.query[property];
+                    filters.$and.push(field);
                 }
-                
             }
             if (property.indexOf('sort') !== -1) { 
                 let key = property.substring(5);
