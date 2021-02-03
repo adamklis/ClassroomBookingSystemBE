@@ -50,10 +50,18 @@ router.get('/', function (req, res) {
         if (!filters.$and || filters.$and.length === 0){
             delete filters.$and;
         }
-        
-        applianceService.getAppliances(filters, sorts)
-        .then(result => res.send(result))
-        .catch(err => res.status(400).send(err))
+
+        let page = {
+            limit: Number(req.query.limit) ? Number(req.query.limit) : 0,
+            offset: Number(req.query.offset) ? Number(req.query.offset) : 0
+        }
+
+        Promise.all([
+            applianceService.getAppliancesCount(filters),
+            applianceService.getAppliances(filters, sorts, page)
+        ]).then(result => {
+            res.send({page: {limit: page.limit, size: result[0], start: page.offset}, results: result[1]})
+        }).catch(err => res.status(400).send(err))
     })
     .catch(err => { console.log(err); return res.status(403).send("Not permited"); })
 })
@@ -64,16 +72,49 @@ router.get('/use', function (req, res) {
         if (!permitted) { 
             return res.status(403).send("Not permited");
         }
-        let uuidFilter = req.query.filter_uuid;
-        let nameFilter = req.query.filter_name;
-        applianceService.getAppliances()
-            .then(result => res.send(
-                result
-                    .filter(item => 
-                        (!uuidFilter || item.uuid === uuidFilter) &&
-                        (!nameFilter || item.name.toLowerCase().indexOf(nameFilter.toLowerCase()) >= 0 )
-                    )
-                    .map(item => {
+        
+        let filters = {$and: []};
+        let sorts = {};
+        for (let property in req.query) {
+            let key = property.substring(7);
+            if (property.indexOf('filter') !== -1) { 
+                let key = property.substring(7);               
+                if (key === "quantity"){
+                    if (Array.isArray(req.query[property])) {
+                        req.query[property].forEach(val => filters.$and.push({[key]: { $gte: Number(val)}}));
+                    } else {
+                        filters.$and.push({[key]: { $gte: Number(req.query[property])}});
+                    }
+                } else {   
+                    if (Array.isArray(req.query[property])) {
+                        req.query[property].forEach(val => filters.$and.push({[key]: new RegExp(`.*${val}.*`,"i")}));
+                    }
+                    else {
+                        filters.$and.push({[key]: new RegExp(`.*${req.query[property]}.*`,"i")});
+                    }
+                }
+            }
+            if (property.indexOf('sort') !== -1) { 
+                sorts[property.substring(5)] = {};
+                sorts[property.substring(5)] = req.query[property] === 'desc'? -1 : 1;
+            }
+        }
+
+        if (!filters.$and || filters.$and.length === 0){
+            delete filters.$and;
+        }
+        let page = {
+            limit: Number(req.query.limit) ? Number(req.query.limit) : 0,
+            offset: Number(req.query.offset) ? Number(req.query.offset) : 0
+        }
+
+        Promise.all([
+            applianceService.getAppliancesCount(filters),
+            applianceService.getAppliances(filters, sorts, page)
+        ]).then(result => {
+            res.send({
+                page: {limit: page.limit, size: result[0], start: page.offset}, 
+                results: result[1].map(item => {
                     return {
                         uuid: item.uuid,
                         name: item.name,
@@ -81,10 +122,10 @@ router.get('/use', function (req, res) {
                         maxQuantity: item.quantity,
                         appliance: { uuid: item.uuid, name: item.name }
                     }
-                    })
-            ));
-        })
-        .catch(err => { return res.status(403).send("Not permited"); })
+                })
+            });
+        }).catch(err => res.status(400).send(err))
+    }).catch(err => { return res.status(403).send("Not permited"); })
 })
 
 router.get('/:uuid', function (req, res) {

@@ -2,8 +2,12 @@ var mongoUtil = require( '../mongo-util' );
 var db = mongoUtil.getDb();
 module.exports = class SoftwareService {
 
-    getSoftwareList(filters, sorts) {
-        return db.collection('software').find(filters).sort(sorts).toArray();
+    getSoftwareCount(filters) {
+        return db.collection('software').find(filters).count();
+    }
+
+    getSoftwareList(filters, sorts, page) {
+        return db.collection('software').find(filters).sort(sorts).skip(page.offset).limit(page.limit).toArray();
     }
 
     getSoftware(uuid) {
