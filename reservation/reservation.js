@@ -58,18 +58,30 @@ router.get('/', function (req, res) {
             }
         }
 
-        reservationService.getReservations(filters, sorts)
-            .then(result => {
-                if (permitted.findIndex(permission => permission === PermissionEnum.RESERVATION_VIEW) === -1) {
-                    authService.getUserByToken(req.headers.authorization.substr(7)).toArray().then(users =>{
-                        result = result.filter(reservation => reservation.user.uuid === users[0].user[0].uuid);
-                        return res.send(result);
+        let page = {
+            limit: Number(req.query.limit) ? Number(req.query.limit) : 0,
+            offset: Number(req.query.offset) ? Number(req.query.offset) : 0
+        }
+
+        Promise.all([
+            reservationService.getReservationsCount(filters),
+            reservationService.getReservations(filters, sorts, page)
+        ]).then(result => {
+            if (permitted.findIndex(permission => permission === PermissionEnum.RESERVATION_VIEW) === -1) {
+                authService.getUserByToken(req.headers.authorization.substr(7)).toArray().then(users =>{
+                    result[1] = result[1].filter(reservation => reservation.user.uuid === users[0].user[0].uuid);
+                    res.send({
+                        page: {limit: page.limit, size: result[0], start: page.offset},
+                        results: result[1]
                     })
-                } else {
-                    res.send(result);
-                }
-            })
-            .catch(err => res.status(400).send(err))
+                })
+            } else {
+                res.send({
+                    page: {limit: page.limit, size: result[0], start: page.offset},
+                    results: result[1]
+                })
+            }  
+        }).catch(err => res.status(400).send(err))
     })
     .catch(err => {console.log(err); return res.status(403).send("Not permited"); })
 })

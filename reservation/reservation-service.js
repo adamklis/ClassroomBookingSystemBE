@@ -2,8 +2,12 @@ var mongoUtil = require( '../mongo-util' );
 var db = mongoUtil.getDb();
 module.exports = class ReservationService {
 
-    getReservations(filters, sorts) {
-        return db.collection('reservation').find(filters).sort(sorts).toArray();
+    getReservationsCount(filters){
+        return db.collection('reservation').find(filters).count();
+    }
+
+    getReservations(filters, sorts, page) {
+        return db.collection('reservation').find(filters).sort(sorts).skip(page.offset).limit(page.limit).toArray();
     }
 
     getReservation(uuid) {
