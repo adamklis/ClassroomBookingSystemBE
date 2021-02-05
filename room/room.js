@@ -42,10 +42,10 @@ router.get('/', function (req, res) {
                     }
     
                     if (Array.isArray(req.query[property])) {
-                        req.query[property].forEach(val => filters.$and.push({[key]: new RegExp(`.*${val}.*`,"i")}));
+                        req.query[property].forEach(val => filters.$and.push({[key]: val}));
                     }
                     else {
-                        filters.$and.push({[key]: new RegExp(`.*${req.query[property]}.*`,"i")});
+                        filters.$and.push({[key]: req.query[property]});
                     }
                 }
                        
