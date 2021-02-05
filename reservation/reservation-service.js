@@ -2,6 +2,30 @@ var mongoUtil = require( '../mongo-util' );
 var db = mongoUtil.getDb();
 module.exports = class ReservationService {
 
+    getUnreservedRooms(filters, sorts, page){
+        return db.collection('room').aggregate([
+            {
+                $lookup:
+                {
+                    from: 'reservation',
+                    let: {roomUuid: '$uuid'},
+                    pipeline:[
+                        {
+                            $match: {$expr: filters.reservations}
+                        }
+                    ],
+                    as: 'reservation',
+                }
+            },
+            {
+                $match: filters.rooms
+            },
+            {
+                $sort: sorts
+            }
+        ]).skip(page.offset).limit(page.limit).toArray();
+    }
+
     getReservationsCount(filters){
         return db.collection('reservation').find(filters).count();
     }
