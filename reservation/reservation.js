@@ -95,7 +95,7 @@ router.get('/unreservedRooms', function (req, res){
             reservationService.getUnreservedRooms(filters, sorts, page)
         ]).then(result => {
             res.send({
-                page: {limit: page.limit, size: result[0].count, start: page.offset},
+                page: {limit: page.limit, size: result[0] ? result[0].count : 0, start: page.offset},
                 results: result[1].map((room) => {
                 return {
                     uuid: room.uuid,
