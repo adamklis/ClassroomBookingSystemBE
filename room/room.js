@@ -42,10 +42,10 @@ router.get('/', function (req, res) {
                     }
     
                     if (Array.isArray(req.query[property])) {
-                        req.query[property].forEach(val => filters.$and.push({[key]: new RegExp(`.*${val}.*`,"i")}));
+                        req.query[property].forEach(val => filters.$and.push({[key]: val}));
                     }
                     else {
-                        filters.$and.push({[key]: new RegExp(`.*${req.query[property]}.*`,"i")});
+                        filters.$and.push({[key]: req.query[property]});
                     }
                 }
                        
@@ -59,9 +59,19 @@ router.get('/', function (req, res) {
         if (filters.$and.length === 0) {
             delete filters.$and;
         }
-        
-        roomService.getRooms(filters, sorts)
-            .then(result => res.send(result.map((room) => {
+
+        let page = {
+            limit: Number(req.query.limit) ? Number(req.query.limit) : 0,
+            offset: Number(req.query.offset) ? Number(req.query.offset) : 0
+        }
+
+        Promise.all([
+            roomService.getRoomsCount(filters),
+            roomService.getRooms(filters, sorts, page)
+        ]).then(result => {
+            res.send({
+                page: {limit: page.limit, size: result[0], start: page.offset},
+                results: result[1].map((room) => {
                 return {
                     uuid: room.uuid,
                     name: room.name,
@@ -69,8 +79,8 @@ router.get('/', function (req, res) {
                     appliances: room.appliances,
                     software: room.software
                 }
-            })))
-            .catch(err => res.status(400).send(err))
+            })})
+        }).catch(err => res.status(400).send(err))
     })
     .catch(err => { return res.status(403).send("Not permited"); })
 })

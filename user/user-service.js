@@ -2,11 +2,19 @@ var mongoUtil = require( '../mongo-util' );
 var db = mongoUtil.getDb();
 module.exports = class UserService {
 
-    getUsers(filters, sorts) {
+    getUsersCount(filters) {
         if (filters?.aggregate){
-            return db.collection('user').aggregate([filters.aggregate.addFields, filters.aggregate.match]).toArray();
+            return db.collection('user').aggregate([filters.aggregate.addFields, filters.aggregate.match, {$count: 'count'}]).next();
         } else {
-            return db.collection('user').find(filters).sort(sorts).toArray();
+            return db.collection('user').find(filters).count();
+        }
+    }
+
+    getUsers(filters, sorts, page) {
+        if (filters?.aggregate){
+            return db.collection('user').aggregate([filters.aggregate.addFields, filters.aggregate.match]).skip(page.offset).limit(page.limit).toArray();
+        } else {
+            return db.collection('user').find(filters).sort(sorts).skip(page.offset).limit(page.limit).toArray();
         }
     }
 

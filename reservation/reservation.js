@@ -13,8 +13,102 @@ const PermissionService = require('../auth/permission-service');
 const PermissionEnum = require('../auth/permission.enum');
 
 const AuthService = require('../auth/auth-service');
-const e = require('express');
 var authService = new AuthService();
+
+router.get('/unreservedRooms', function (req, res){
+    PermissionService.checkPermissions(req.headers.authorization, [PermissionEnum.ROOM_VIEW])
+    .then(permitted => {
+        if (!permitted || permitted.length === 0) {
+            return res.status(403).send("Not permited");
+        }
+
+        let filters = {reservations: {}, rooms: {$and: []}};
+        let sorts = {};
+
+        if (req.query['filter_dateFrom'] && req.query['filter_dateTo']){
+            filters.reservations = { 
+                $and: [      
+                    { $or: [
+                        {$and: [{$gt: ['$dateFrom', new Date(req.query['filter_dateFrom'])]}, {$lt: ['$dateFrom', new Date(req.query['filter_dateTo'])]}]},
+                        {$and: [{$gt: ['$dateTo', new Date(req.query['filter_dateFrom'])]}, {$lt: ['$dateTo', new Date(req.query['filter_dateTo'])]}]},
+                        {$and: [{$lte: ['$dateFrom', new Date(req.query['filter_dateFrom'])]}, {$gte: ['$dateTo', new Date(req.query['filter_dateTo'])]}]},
+                        {$and: [{$gte: ['$dateFrom', new Date(req.query['filter_dateFrom'])]}, {$lte: ['$dateTo', new Date(req.query['filter_dateTo'])]}]}
+                    ]},              
+                    {$eq: ['$$roomUuid', '$room.uuid']}
+                ]
+            };
+        }
+
+        for (let property in req.query) {
+            if (property.indexOf('filter') !== -1) {
+                let key = property.substring(7);
+                
+                if (key === "keyword_int"){
+                    key = "numberOfSeats";
+                    if (Array.isArray(req.query[property])) {
+                        req.query[property].forEach(val => filters.rooms.$and.push({[key]: { $gte: Number(val)}}));
+                    } else {
+                        filters.rooms.$and.push({[key]: { $gte: Number(req.query[property])}});
+                    }
+                } else if (key !== "dateFrom" && key !== "dateTo") {
+                    if (key === "keyword") {
+                        key = "name";
+                    } else if (key === "appliance") {
+                        key = "appliances.name";
+                    } else if (key === "software") {
+                        key = "software.name";
+                    }
+
+                    if (key === "name"){
+                        if (Array.isArray(req.query[property])) {
+                            req.query[property].forEach(val => filters.rooms.$and.push({[key]: new RegExp(`.*${val}.*`,"i")}));
+                        }
+                        else {
+                            filters.rooms.$and.push({[key]: new RegExp(`.*${req.query[property]}.*`,"i")});
+                        }
+                    } else {
+                        if (Array.isArray(req.query[property])) {
+                            req.query[property].forEach(val => filters.rooms.$and.push({[key]: val}));
+                        }
+                        else {
+                            filters.rooms.$and.push({[key]: req.query[property]});
+                        }
+                    }                    
+                }   
+            }
+            if (property.indexOf('sort') !== -1) {
+                let key = property.substring(5);
+                sorts[key] = {};
+                sorts[key] = req.query[property] === 'desc'? -1 : 1;
+            }
+        }
+
+        filters.rooms.$and.push({reservation: {$eq: []}});
+
+        let page = {
+            limit: Number(req.query.limit) ? Number(req.query.limit) : 999999,
+            offset: Number(req.query.offset) ? Number(req.query.offset) : 0
+        }
+
+        Promise.all([
+            reservationService.getUnreservedRoomsCount(filters),
+            reservationService.getUnreservedRooms(filters, sorts, page)
+        ]).then(result => {
+            res.send({
+                page: {limit: page.limit, size: result[0] ? result[0].count : 0, start: page.offset},
+                results: result[1].map((room) => {
+                return {
+                    uuid: room.uuid,
+                    name: room.name,
+                    numberOfSeats: room.numberOfSeats,
+                    appliances: room.appliances,
+                    software: room.software
+                }
+            })})
+        }).catch(err => {console.log(err); res.status(400).send(err)})
+    })
+    .catch(err => {console.log(err); return res.status(403).send("Not permited"); })
+})
 
 router.get('/', function (req, res) {
     PermissionService.checkPermissions(req.headers.authorization, [PermissionEnum.RESERVATION_VIEW, PermissionEnum.RESERVATION_VIEW_USER])
@@ -58,18 +152,30 @@ router.get('/', function (req, res) {
             }
         }
 
-        reservationService.getReservations(filters, sorts)
-            .then(result => {
-                if (permitted.findIndex(permission => permission === PermissionEnum.RESERVATION_VIEW) === -1) {
-                    authService.getUserByToken(req.headers.authorization.substr(7)).toArray().then(users =>{
-                        result = result.filter(reservation => reservation.user.uuid === users[0].user[0].uuid);
-                        return res.send(result);
+        let page = {
+            limit: Number(req.query.limit) ? Number(req.query.limit) : 0,
+            offset: Number(req.query.offset) ? Number(req.query.offset) : 0
+        }
+
+        Promise.all([
+            reservationService.getReservationsCount(filters),
+            reservationService.getReservations(filters, sorts, page)
+        ]).then(result => {
+            if (permitted.findIndex(permission => permission === PermissionEnum.RESERVATION_VIEW) === -1) {
+                authService.getUserByToken(req.headers.authorization.substr(7)).toArray().then(users =>{
+                    result[1] = result[1].filter(reservation => reservation.user.uuid === users[0].user[0].uuid);
+                    res.send({
+                        page: {limit: page.limit, size: result[0], start: page.offset},
+                        results: result[1]
                     })
-                } else {
-                    res.send(result);
-                }
-            })
-            .catch(err => res.status(400).send(err))
+                })
+            } else {
+                res.send({
+                    page: {limit: page.limit, size: result[0], start: page.offset},
+                    results: result[1]
+                })
+            }  
+        }).catch(err => res.status(400).send(err))
     })
     .catch(err => {console.log(err); return res.status(403).send("Not permited"); })
 })

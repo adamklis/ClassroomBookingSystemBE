@@ -49,9 +49,18 @@ router.get('/', function (req, res) {
             delete filters.$and;
         }
 
-        userService.getUsers(filters, sorts)
-            .then(result => res.send(
-                result.map((user) => {
+        let page = {
+            limit: Number(req.query.limit) ? Number(req.query.limit) : 0,
+            offset: Number(req.query.offset) ? Number(req.query.offset) : 0
+        }
+
+        Promise.all([
+            userService.getUsersCount(filters),
+            userService.getUsers(filters, sorts, page)
+        ]).then(result => {
+            res.send({
+                page: {limit: page.limit, size: result[0].count ? result[0].count: result[0], start: page.offset},
+                results: result[1].map((user) => {
                     return {
                         uuid: user.uuid,
                         forename: user.forename,
@@ -60,11 +69,10 @@ router.get('/', function (req, res) {
                         contact: user.contact,
                         permissions: user.permissions
                     };
-                })
-            ))
-            .catch(err => res.status(400).send(err));
+                })})
+        }).catch(err => {console.log(err); res.status(400).send(err);})
     })
-    .catch(err => { return res.status(403).send("Not permited"); })
+    .catch(err => {console.log(err); return res.status(403).send("Not permited"); })
 })
 
 router.get('/:uuid', function (req, res) {
@@ -93,7 +101,7 @@ router.get('/:uuid', function (req, res) {
 })
 
 router.post('/', jsonParser, function (req, res) {
-    userService.getUsers()
+    userService.getUsers({}, {}, {limit: 0, offset: 0})
     .then(users => {
         if ( users.find(user => user.email === req.body.email)) {
             return res.status(400).send("SHARED.ERROR.USER_EXIST");
@@ -138,7 +146,7 @@ router.put('/:uuid', jsonParser, function (req, res) {
             return res.status(403).send("Not permited");
         }
 
-        userService.getUsers()
+        userService.getUsers({}, {}, {limit: 0, offset: 0})
         .then(users => {
             if ( users.find(user => user.email === req.body.email && user.uuid !== req.body.uuid)) {
                 return res.status(400).send("SHARED.ERROR.USER_EXIST");
