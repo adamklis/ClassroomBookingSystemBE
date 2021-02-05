@@ -86,19 +86,26 @@ router.get('/unreservedRooms', function (req, res){
         filters.rooms.$and.push({reservation: {$eq: []}});
 
         let page = {
-            limit: Number(req.query.limit) ? Number(req.query.limit) : 999999999,
+            limit: Number(req.query.limit) ? Number(req.query.limit) : 999999,
             offset: Number(req.query.offset) ? Number(req.query.offset) : 0
         }
 
-        reservationService.getUnreservedRooms(filters, sorts, page)
-        .then(result => {
-            return res.send(result);
-        })
-        .catch(err => {
-            console.log(err);
-            return res.status(400).send(err);
-        })
-
+        Promise.all([
+            reservationService.getUnreservedRoomsCount(filters),
+            reservationService.getUnreservedRooms(filters, sorts, page)
+        ]).then(result => {
+            res.send({
+                page: {limit: page.limit, size: result[0].count, start: page.offset},
+                results: result[1].map((room) => {
+                return {
+                    uuid: room.uuid,
+                    name: room.name,
+                    numberOfSeats: room.numberOfSeats,
+                    appliances: room.appliances,
+                    software: room.software
+                }
+            })})
+        }).catch(err => {console.log(err); res.status(400).send(err)})
     })
     .catch(err => {console.log(err); return res.status(403).send("Not permited"); })
 })
