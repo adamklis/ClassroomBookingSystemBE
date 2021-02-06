@@ -2,6 +2,9 @@ var mongoUtil = require( '../mongo-util' );
 var db = mongoUtil.getDb();
 module.exports = class ReservationService {
 
+    /**
+     * @deprecated Due to cosmosdb limitations cannot be used on azure server. Example usage in reservation.js commit 950627f.
+     */
     getUnreservedRoomsCount(filters){
         return db.collection('room').aggregate([
             {
@@ -26,6 +29,9 @@ module.exports = class ReservationService {
         ]).next();
     }
 
+    /**
+     * @deprecated Due to cosmosdb limitations cannot be used on azure server. Example usage in reservation.js commit 950627f.
+     */
     getUnreservedRooms(filters, sorts, page){
         return db.collection('room').aggregate([
             {
