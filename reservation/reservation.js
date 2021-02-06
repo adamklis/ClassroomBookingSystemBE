@@ -9,6 +9,9 @@ const jsonParser = bodyParser.json();
 const ReservationService = require('./reservation-service');
 var reservationService = new ReservationService();
 
+const RoomService = require('../room/room-service');
+var roomService = new RoomService();
+
 const PermissionService = require('../auth/permission-service');
 const PermissionEnum = require('../auth/permission.enum');
 
@@ -26,17 +29,12 @@ router.get('/unreservedRooms', function (req, res){
         let sorts = {};
 
         if (req.query['filter_dateFrom'] && req.query['filter_dateTo']){
-            filters.reservations = { 
-                $and: [      
-                    { $or: [
-                        {$and: [{$gt: ['$dateFrom', new Date(req.query['filter_dateFrom'])]}, {$lt: ['$dateFrom', new Date(req.query['filter_dateTo'])]}]},
-                        {$and: [{$gt: ['$dateTo', new Date(req.query['filter_dateFrom'])]}, {$lt: ['$dateTo', new Date(req.query['filter_dateTo'])]}]},
-                        {$and: [{$lte: ['$dateFrom', new Date(req.query['filter_dateFrom'])]}, {$gte: ['$dateTo', new Date(req.query['filter_dateTo'])]}]},
-                        {$and: [{$gte: ['$dateFrom', new Date(req.query['filter_dateFrom'])]}, {$lte: ['$dateTo', new Date(req.query['filter_dateTo'])]}]}
-                    ]},              
-                    {$eq: ['$$roomUuid', '$room.uuid']}
-                ]
-            };
+            filters.reservations = { $or: [
+                {dateFrom: {"$gt": new Date(req.query['filter_dateFrom']), "$lt": new Date(req.query['filter_dateTo'])}},
+                {dateTo: {"$gt": new Date(req.query['filter_dateFrom']), "$lt": new Date(req.query['filter_dateTo'])}},
+                {$and: [{dateFrom: {"$lte": new Date(req.query['filter_dateFrom'])}}, {dateTo: {"$gte": new Date(req.query['filter_dateTo'])}}]},
+                {$and: [{dateFrom: {"$gte": new Date(req.query['filter_dateFrom'])}}, {dateTo: {"$lte": new Date(req.query['filter_dateTo'])}}]}
+            ]};
         }
 
         for (let property in req.query) {
@@ -83,7 +81,9 @@ router.get('/unreservedRooms', function (req, res){
             }
         }
 
-        filters.rooms.$and.push({reservation: {$eq: []}});
+        if (filters.rooms.$and.length === 0) {
+            delete filters.rooms.$and;
+        }
 
         let page = {
             limit: Number(req.query.limit) ? Number(req.query.limit) : 999999,
@@ -91,12 +91,26 @@ router.get('/unreservedRooms', function (req, res){
         }
 
         Promise.all([
-            reservationService.getUnreservedRoomsCount(filters),
-            reservationService.getUnreservedRooms(filters, sorts, page)
+            reservationService.getReservations(filters.reservations, {_id: 1}, {limit: 999999, offset: 0}),
+            roomService.getRooms(filters.rooms, {_id: 1}, {limit: 999999, offset: 0})
         ]).then(result => {
+            unreservedRooms = result[1].sort((a, b) => {
+                if (a.name.toLowerCase() > b.name.toLowerCase()) {
+                    return 1;
+                } else if (a.name.toLowerCase() < b.name.toLowerCase()) {
+                    return -1;
+                } else {
+                    if (a._id >= b._id) {
+                        return 1;
+                    } else {
+                        return -1
+                    }
+                }
+            }).filter(room => result[0].findIndex(reservation => reservation.room.uuid === room.uuid) === -1);
+            pagedUnreservedRooms = unreservedRooms.slice(page.offset, page.offset + page.limit);
             res.send({
-                page: {limit: page.limit, size: result[0] ? result[0].count : 0, start: page.offset},
-                results: result[1].map((room) => {
+                page: {limit: page.limit, size: unreservedRooms.length, start: page.offset},
+                results: pagedUnreservedRooms.map((room) => {
                 return {
                     uuid: room.uuid,
                     name: room.name,
