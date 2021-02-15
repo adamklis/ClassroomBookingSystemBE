@@ -58,8 +58,15 @@ router.get('/', function (req, res) {
             userService.getUsersCount(filters),
             userService.getUsers(filters, sorts, page)
         ]).then(result => {
+            if (result[0]){
+                if (result[0].count) {
+                    result[0] = result[0].count;
+                }
+            } else {
+                result[0] = 0;
+            }
             res.send({
-                page: {limit: page.limit, size: result[0].count ? result[0].count: result[0], start: page.offset},
+                page: {limit: page.limit, size: result[0], start: page.offset},
                 results: result[1].map((user) => {
                     return {
                         uuid: user.uuid,

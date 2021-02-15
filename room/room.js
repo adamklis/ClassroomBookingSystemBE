@@ -33,19 +33,27 @@ router.get('/', function (req, res) {
                         filters.$and.push({[key]: { $gte: Number(req.query[property])}});
                     }
                 } else {
-                    if (key === "keyword") {
+                    if (key === "keyword" || key === "name") {
                         key = "name";
-                    } else if (key === "appliance") {
-                        key = "appliances.name";
-                    } else if (key === "software") {
-                        key = "software.name";
-                    }
-    
-                    if (Array.isArray(req.query[property])) {
-                        req.query[property].forEach(val => filters.$and.push({[key]: val}));
-                    }
-                    else {
-                        filters.$and.push({[key]: req.query[property]});
+                        if (Array.isArray(req.query[property])) {
+                            req.query[property].forEach(val => filters.$and.push({[key]: new RegExp(`.*${val}.*`,"i")}));
+                        }
+                        else {
+                            filters.$and.push({[key]: new RegExp(`.*${req.query[property]}.*`,"i")});
+                        }
+                    } else {
+                        if (key === "appliance") {
+                            key = "appliances.name";
+                        } else if (key === "software") {
+                            key = "software.name";
+                        }
+        
+                        if (Array.isArray(req.query[property])) {
+                            req.query[property].forEach(val => filters.$and.push({[key]: val}));
+                        }
+                        else {
+                            filters.$and.push({[key]: req.query[property]});
+                        }
                     }
                 }
                        
