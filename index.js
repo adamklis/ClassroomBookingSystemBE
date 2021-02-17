@@ -13,6 +13,7 @@ mongoUtil.connectToServer( err => {
     const room = require('./room/room');
     const user = require('./user/user');
     const auth = require('./auth/auth');
+    const dictionary = require('./dictionary/dictionary');
     const health = require('./health');
 
     app.use('/api/reservation', reservation);
@@ -21,6 +22,7 @@ mongoUtil.connectToServer( err => {
     app.use('/api/room', room);
     app.use('/api/user', user);
     app.use('/api/auth', auth);
+    app.use('/api/dictionary', dictionary);
     app.use('/api/health', health);
   }
 }
