@@ -138,6 +138,17 @@ module.exports = {
                         })
                     }
 
+                    if (!collections.find(collection => collection.name === 'dictionary')) {
+                        _db.createCollection("dictionary", function (err, res) {
+                            _db.collection('dictionary').insertMany([
+                                { "key": "REPORTED", "items": [] },
+                                { "key": "CHANGELOG", "items": [] }
+                            ]);
+                            if (err) throw err;
+                            console.log("Dictionary collection created!");
+                        })
+                    }
+
                     return callback(err);
                 });
             }
